@@ -1,0 +1,100 @@
+// Schéma Prisma pour l'e-commerce de bijoux
+// Documentation: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Modèle pour les produits (bijoux)
+model Product {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  price       Decimal  @db.Decimal(10, 2)
+  category    String
+  images      String[] // URLs des images
+  stock       Int      @default(0)
+  featured    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  orderItems  OrderItem[]
+  
+  @@map("products")
+}
+
+// Modèle pour les commandes
+model Order {
+  id              Int          @id @default(autoincrement())
+  
+  // Informations client
+  customerFirstName String
+  customerLastName  String
+  customerEmail     String
+  customerPhone     String?
+  
+  // Adresse de livraison
+  shippingAddress   Json?
+  
+  // Totaux et statut
+  total             Decimal      @db.Decimal(10, 2)
+  status            OrderStatus  @default(PENDING)
+  notes             String?
+  
+  // Dates
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  
+  // Relations
+  items             OrderItem[]
+  
+  @@map("orders")
+}
+
+// Modèle pour les articles de commande
+model OrderItem {
+  id         Int     @id @default(autoincrement())
+  quantity   Int
+  price      Decimal @db.Decimal(10, 2) // Prix unitaire au moment de la commande
+  
+  // Relations
+  order      Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId    Int
+  
+  product    Product @relation(fields: [productId], references: [id])
+  productId  Int
+  
+  @@map("order_items")
+}
+
+// Modèle pour les utilisateurs admin (optionnel)
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  role      UserRole @default(ADMIN)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("users")
+}
+
+// Énumérations
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum UserRole {
+  ADMIN
+  SUPER_ADMIN
+}
