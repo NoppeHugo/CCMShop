@@ -10,6 +10,7 @@ import Checkout from './pages/Checkout';
 import Collections from './pages/Collections';
 import CollectionDetail from './pages/CollectionDetail';
 import Contact from './pages/Contact';
+import NotreHistoire from './pages/NotreHistoire';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
 import './App.css';
@@ -36,7 +37,7 @@ function App() {
                     <Route path="/commande" element={<Checkout />} />
                     <Route path="/collections" element={<Collections />} />
                     <Route path="/collections/:id" element={<CollectionDetail />} />
-                    <Route path="/notre-histoire" element={<div className="p-8 text-center">Page Notre Histoire - En développement</div>} />
+                    <Route path="/notre-histoire" element={<NotreHistoire />} />
                     <Route path="/contact" element={<Contact />} />
                     <Route path="*" element={<div className="p-8 text-center">Page non trouvée</div>} />
                   </Routes>
