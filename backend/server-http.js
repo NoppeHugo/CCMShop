@@ -200,10 +200,10 @@ const server = http.createServer((req, res) => {
   }));
 });
 
-const PORT = 5000;
-server.listen(PORT, () => {
+const PORT = process.env.PORT || 5000;
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Serveur HTTP démarré sur le port ${PORT}`);
-  console.log(`📍 URL: http://localhost:${PORT}`);
+  console.log(`📍 URL: http://0.0.0.0:${PORT}`);
   console.log(`🌐 Frontend: http://localhost:5173`);
-  console.log(`📊 Test API: http://localhost:${PORT}/api/products`);
+  console.log(`📊 Test API: http://0.0.0.0:${PORT}/api/products`);
 });
