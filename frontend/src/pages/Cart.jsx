@@ -171,11 +171,11 @@ const Cart = () => {
                             {/* Prix */}
                             <div className="text-right">
                               <p className="font-semibold text-neutral-900">
-                                {(item.price * item.quantity).toFixed(2)}€
+                                {(item.price && item.quantity) ? (item.price * item.quantity).toFixed(2) : '0.00'}€
                               </p>
                               {item.quantity > 1 && (
                                 <p className="text-sm text-neutral-500">
-                                  {item.price.toFixed(2)}€ × {item.quantity}
+                                  {item.price ? item.price.toFixed(2) : '0.00'}€ × {item.quantity}
                                 </p>
                               )}
                             </div>

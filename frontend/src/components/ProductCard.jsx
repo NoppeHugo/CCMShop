@@ -7,14 +7,20 @@ const ProductCard = ({ product, onAddToCart }) => {
   const [stockError, setStockError] = useState('');
   const { isInCart, getItemQuantity, getAvailableStock, addToCart } = useCart();
   
+  // Validation et valeurs par défaut pour éviter les erreurs
+  if (!product) {
+    console.error('ProductCard: produit non défini');
+    return null;
+  }
+
   const {
-    id,
-    name,
-    description,
-    price,
-    images,
-    category,
-    featured
+    id = 0,
+    name = 'Produit sans nom',
+    description = 'Description non disponible',
+    price = 0,
+    images = [],
+    category = 'bijou',
+    featured = false
   } = product;
 
   const handleAddToCart = async () => {
@@ -101,7 +107,7 @@ const ProductCard = ({ product, onAddToCart }) => {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-baseline space-x-2">
             <span className="text-xl font-semibold text-neutral-900">
-              {price.toFixed(2)}€
+              {(price || 0).toFixed(2)}€
             </span>
           </div>
           
