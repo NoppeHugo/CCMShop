@@ -48,7 +48,7 @@ api.interceptors.response.use(
 
 // Services pour les produits
 export const productsService = {
-  // Récupérer tous les produits (combine backend + admin)
+  // Récupérer tous les produits (backend seulement pour le site, backend + admin pour l'admin)
   getAll: async (params = {}) => {
     try {
       // Essayer de récupérer depuis le backend
@@ -57,17 +57,30 @@ export const productsService = {
       // Le backend retourne { success: true, data: [...] }
       const backendProducts = response.data?.data || response.data || [];
       
-      // Récupérer les produits admin depuis localStorage
-      const adminProducts = JSON.parse(localStorage.getItem('adminProducts') || '[]');
+      // Si on est dans l'interface admin (détecté par l'URL ou localStorage admin connecté)
+      const isAdminContext = window.location.pathname.includes('/admin') || 
+                            localStorage.getItem('isAdminConnected');
       
-      // Combiner les deux sources
-      const allProducts = [...backendProducts, ...adminProducts];
-      
-      return { data: allProducts };
+      if (isAdminContext) {
+        // Mode admin : combiner backend + localStorage
+        const adminProducts = JSON.parse(localStorage.getItem('adminProducts') || '[]');
+        const allProducts = [...backendProducts, ...adminProducts];
+        return { data: allProducts };
+      } else {
+        // Mode site normal : seulement le backend
+        return { data: backendProducts };
+      }
     } catch (error) {
-      // Backend non disponible - mode silencieux
-      const adminProducts = JSON.parse(localStorage.getItem('adminProducts') || '[]');
-      return { data: adminProducts };
+      // Backend non disponible - utiliser localStorage seulement si on est en admin
+      const isAdminContext = window.location.pathname.includes('/admin') || 
+                            localStorage.getItem('isAdminConnected');
+      
+      if (isAdminContext) {
+        const adminProducts = JSON.parse(localStorage.getItem('adminProducts') || '[]');
+        return { data: adminProducts };
+      } else {
+        return { data: [] }; // Site normal sans backend = pas de produits
+      }
     }
   },
 
