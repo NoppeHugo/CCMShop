@@ -16,11 +16,20 @@ const Home = () => {
     const loadFeaturedProducts = async () => {
       try {
         setLoading(true);
+        setError(null);
         const response = await productsService.getFeatured(4);
-        setFeaturedProducts(response.data || []);
+        
+        // Vérification robuste de la réponse
+        if (response && response.data && Array.isArray(response.data)) {
+          setFeaturedProducts(response.data);
+        } else {
+          console.warn('Format de réponse inattendu:', response);
+          setFeaturedProducts([]);
+        }
       } catch (err) {
         console.error('Erreur lors du chargement des produits:', err);
         setError('Impossible de charger les produits pour le moment.');
+        setFeaturedProducts([]); // Produits vides en cas d'erreur
       } finally {
         setLoading(false);
       }

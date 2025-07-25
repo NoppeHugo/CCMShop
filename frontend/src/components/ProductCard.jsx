@@ -83,7 +83,7 @@ const ProductCard = ({ product, onAddToCart }) => {
         {/* Catégorie */}
         <div className="mb-2">
           <span className="text-xs text-neutral-500 uppercase tracking-wide font-medium">
-            {category.replace('-', ' ')}
+            {category?.replace('-', ' ') || 'Bijou'}
           </span>
         </div>
 
