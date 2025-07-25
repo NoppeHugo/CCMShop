@@ -50,6 +50,7 @@ const server = http.createServer((req, res) => {
   const allowedOrigins = [
     'http://localhost:5173',
     'http://localhost:3000',
+    'https://ccm-shop.vercel.app',
     'https://ccm-jewelry.vercel.app',
     'https://ccm-jewelry-hugons-projects-b1234567.vercel.app'
   ];
@@ -58,8 +59,8 @@ const server = http.createServer((req, res) => {
   if (allowedOrigins.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
   } else {
-    // Par défaut, accepter localhost en développement
-    res.setHeader('Access-Control-Allow-Origin', 'http://localhost:5173');
+    // Accepter toutes les origines Vercel pour simplifier
+    res.setHeader('Access-Control-Allow-Origin', '*');
   }
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
