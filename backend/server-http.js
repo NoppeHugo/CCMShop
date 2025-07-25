@@ -46,8 +46,21 @@ const products = [
 ];
 
 const server = http.createServer((req, res) => {
-  // Headers CORS
-  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:5173');
+  // Headers CORS - Accepter localhost et Vercel
+  const allowedOrigins = [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'https://ccm-jewelry.vercel.app',
+    'https://ccm-jewelry-hugons-projects-b1234567.vercel.app'
+  ];
+  
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else {
+    // Par défaut, accepter localhost en développement
+    res.setHeader('Access-Control-Allow-Origin', 'http://localhost:5173');
+  }
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Content-Type', 'application/json');
