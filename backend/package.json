@@ -4,8 +4,9 @@
   "description": "Backend API pour site e-commerce de bijoux",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "node server-production.js",
     "dev": "nodemon server.js",
+    "build": "echo 'No build step required'",
     "test": "echo \"Error: no test specified\" && exit 1",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",

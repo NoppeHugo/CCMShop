@@ -1,0 +1,13 @@
+version: "3"
+
+build:
+  builder: nixpacks
+
+deploy:
+  startCommand: npm start
+  healthcheckPath: /health
+  healthcheckTimeout: 300
+  restartPolicyType: on-failure
+
+variables:
+  NODE_ENV: production
