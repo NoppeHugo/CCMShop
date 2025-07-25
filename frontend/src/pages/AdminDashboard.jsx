@@ -44,6 +44,17 @@ const AdminDashboard = () => {
     navigate('/admin/login');
   };
 
+  const handleResetAll = () => {
+    if (window.confirm('⚠️ ATTENTION : Supprimer TOUS les produits et collections ? Cette action est irréversible !')) {
+      localStorage.removeItem('adminProducts');
+      localStorage.removeItem('jewelry-stock');
+      localStorage.removeItem('jewelry_collections');
+      setProducts([]);
+      setStockData({});
+      alert('✅ Tous les produits ont été supprimés !');
+    }
+  };
+
   const deleteProduct = (id) => {
     if (window.confirm('Êtes-vous sûre de vouloir supprimer ce bijou ?')) {
       const updatedProducts = products.filter(product => product.id !== id);
@@ -99,6 +110,13 @@ const AdminDashboard = () => {
               Gestion des bijoux - Colliers Colliers Maison
             </h1>
             <div className="flex items-center space-x-4">
+              <button
+                onClick={handleResetAll}
+                className="text-sm bg-red-100 text-red-700 px-3 py-1 rounded-lg hover:bg-red-200"
+                title="Supprimer tous les produits"
+              >
+                🗑️ Reset
+              </button>
               <button
                 onClick={() => navigate('/')}
                 className="text-sm text-neutral-600 hover:text-neutral-900"
