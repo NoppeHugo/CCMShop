@@ -18,7 +18,7 @@ const StockManagement = ({ onClose }) => {
         
         // Charger les produits
         const response = await productsService.getAll();
-        const productList = response.data || [];
+        const productList = (response.data || []).filter(product => product && product.id);
         setProducts(productList);
         
         // Synchroniser et charger le stock
@@ -28,6 +28,7 @@ const StockManagement = ({ onClose }) => {
         
       } catch (error) {
         console.error('Erreur lors du chargement:', error);
+        setProducts([]); // Assurer qu'on a un tableau vide en cas d'erreur
       } finally {
         setLoading(false);
       }
@@ -116,7 +117,7 @@ const StockManagement = ({ onClose }) => {
 
   // Filtrer les produits par nom
   const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase())
+    product && product.name && product.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Obtenir le statut du stock
@@ -270,7 +271,8 @@ const ProductStockCard = ({ product, stock, stockStatus, isUpdating, onUpdateSto
                 alt={product.name}
                 className="w-full h-full object-cover"
                 onError={(e) => {
-                  e.target.src = `https://via.placeholder.com/64x64/F7E7CE/D4AF37?text=${encodeURIComponent(product.name.charAt(0))}`;
+                  const fallbackChar = (product.name && product.name.length > 0) ? product.name.charAt(0) : '◊';
+                  e.target.src = `https://via.placeholder.com/64x64/F7E7CE/D4AF37?text=${encodeURIComponent(fallbackChar)}`;
                 }}
               />
             ) : (
@@ -282,9 +284,9 @@ const ProductStockCard = ({ product, stock, stockStatus, isUpdating, onUpdateSto
 
           {/* Détails */}
           <div className="flex-1 min-w-0">
-            <h3 className="font-medium text-neutral-900 truncate">{product.name}</h3>
-            <p className="text-sm text-neutral-500 capitalize">{product.category?.replace('-', ' ')}</p>
-            <p className="text-sm font-medium text-neutral-700">{product.price?.toFixed(2)}€</p>
+            <h3 className="font-medium text-neutral-900 truncate">{product.name || 'Produit sans nom'}</h3>
+            <p className="text-sm text-neutral-500 capitalize">{product.category?.replace('-', ' ') || 'Bijou'}</p>
+            <p className="text-sm font-medium text-neutral-700">{product.price?.toFixed(2) || '0.00'}€</p>
           </div>
         </div>
 
