@@ -1,0 +1,16 @@
+{
+  "name": "ccm-shop-monorepo",
+  "version": "1.0.0",
+  "description": "CCM Jewelry E-commerce - Backend deployment",
+  "scripts": {
+    "start": "cd backend && npm start",
+    "build": "cd backend && npm install",
+    "dev": "cd backend && npm run dev"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "author": "CCM Bijoux",
+  "license": "ISC"
+}
