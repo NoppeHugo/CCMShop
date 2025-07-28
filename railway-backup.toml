@@ -1,0 +1,13 @@
+version: "3"
+
+build:
+  builder: nixpacks
+
+deploy:
+  startCommand: node server-hybrid.js
+  healthcheckPath: /
+  healthcheckTimeout: 300
+  restartPolicyType: on-failure
+
+variables:
+  NODE_ENV: production
