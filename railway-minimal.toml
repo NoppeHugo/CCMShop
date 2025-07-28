@@ -1,0 +1,7 @@
+version = "3"
+
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "node backend/server-hybrid.js"

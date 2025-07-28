@@ -19,11 +19,11 @@ try {
     Write-Host "Nombre de produits: $($products.count)" -ForegroundColor Cyan
     
     if ($products.count -eq 5) {
-        Write-Host "✅ Supabase fonctionne ! (5 produits)" -ForegroundColor Green
+        Write-Host "OK Supabase fonctionne ! (5 produits)" -ForegroundColor Green
     } elseif ($products.count -eq 4) {
-        Write-Host "❌ Encore les données hardcodées (4 produits)" -ForegroundColor Red
+        Write-Host "KO Encore les donnees hardcodees (4 produits)" -ForegroundColor Red
     } else {
-        Write-Host "⚠️  Nombre inattendu: $($products.count)" -ForegroundColor Yellow
+        Write-Host "Nombre inattendu: $($products.count)" -ForegroundColor Yellow
     }
 } catch {
     Write-Host "❌ Erreur produits: $($_.Exception.Message)" -ForegroundColor Red
@@ -41,6 +41,6 @@ try {
 }
 
 Write-Host ""
-Write-Host "📊 Résumé:" -ForegroundColor Magenta
-Write-Host "✅ Si database='Supabase' et count=5 → Migration réussie !" -ForegroundColor Green
-Write-Host "❌ Si count=4 → Variables Railway pas encore configurées" -ForegroundColor Red
+Write-Host "Resume:" -ForegroundColor Magenta
+Write-Host "OK Si database='Supabase' et count=5 -> Migration reussie !" -ForegroundColor Green
+Write-Host "KO Si count=4 -> Variables Railway pas encore configurees" -ForegroundColor Red
