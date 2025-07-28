@@ -1,36 +1,8 @@
-require('dotenv').config({ path: __dirname + '/.env' });
 const http = require('http');
 const url = require('url');
 
-// 🚀 SERVEUR HYBRIDE v4.0.0 - FORCE SUPABASE EN PRODUCTION
-console.log('🚀 Démarrage serveur HYBRIDE v4.0.0 avec FORCE Supabase');
-
-// Test configuration Supabase
-let useSupabase = false;
-let productsService = null;
-
-if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  try {
-    const { testConnection } = require('./config/supabase');
-    productsService = require('./services/productsService');
-    
-    testConnection().then(() => {
-      console.log('✅ Supabase PostgreSQL activé');
-      useSupabase = true;
-    }).catch(error => {
-      console.log('❌ Supabase échec:', error.message);
-    });
-    
-    useSupabase = true; // Force l'utilisation même en cas d'erreur de test initial
-  } catch (error) {
-    console.log('⚠️ Module Supabase non trouvé:', error.message);
-  }
-} else {
-  console.log('⚠️ Variables Supabase manquantes');
-}
-
-// Données fallback (ancien système)
-const fallbackProducts = [
+// Données temporaires pour les produits
+const products = [
   {
     id: 1,
     name: "Collier Élégance Dorée",
@@ -73,25 +45,28 @@ const fallbackProducts = [
   }
 ];
 
-const server = http.createServer(async (req, res) => {
-  // Headers CORS
+const server = http.createServer((req, res) => {
+  // Headers CORS - Accepter localhost et Vercel
   const allowedOrigins = [
     'http://localhost:5173',
-    'http://localhost:5174',
     'http://localhost:3000',
-    'https://ccm-shop.vercel.app'
+    'https://ccm-shop.vercel.app',
+    'https://ccm-jewelry.vercel.app',
+    'https://ccm-jewelry-hugons-projects-b1234567.vercel.app'
   ];
   
   const origin = req.headers.origin;
   if (allowedOrigins.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
   } else {
+    // Accepter toutes les origines Vercel pour simplifier
     res.setHeader('Access-Control-Allow-Origin', '*');
   }
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Content-Type', 'application/json');
 
+  // Gérer les requêtes OPTIONS (préflight)
   if (req.method === 'OPTIONS') {
     res.writeHead(200);
     res.end();
@@ -102,71 +77,85 @@ const server = http.createServer(async (req, res) => {
   const path = parsedUrl.pathname;
   const query = parsedUrl.query;
 
-  console.log(`${req.method} ${path} (${useSupabase ? 'Supabase' : 'Fallback'})`);
+  console.log(`${req.method} ${path}`);
 
-  // Route de base avec diagnostic
+  // Route de base
   if (path === '/' && req.method === 'GET') {
     res.writeHead(200);
     res.end(JSON.stringify({
-      message: 'API E-commerce Bijoux - SERVEUR HYBRIDE v4.0.0 ✨',
-      version: '4.0.0',
+      message: 'API E-commerce Bijoux - Serveur démarré avec succès ✨',
+      version: '1.0.0',
       status: 'active',
-      database: useSupabase ? 'Supabase PostgreSQL' : 'Fallback hardcoded',
-      supabaseStatus: useSupabase ? 'Connecté' : 'Non disponible',
-      variables: {
-        SUPABASE_URL: process.env.SUPABASE_URL ? 'Configuré' : 'Manquant',
-        SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY ? 'Configuré' : 'Manquant'
-      },
       endpoints: [
-        'GET / - Cette page avec diagnostic',
+        'GET / - Cette page',
         'GET /api/products - Liste des produits',
-        'POST /api/orders - Créer une commande'
+        'GET /api/products/:id - Détail d\'un produit'
       ]
     }));
     return;
   }
 
-  // Route produits avec Supabase prioritaire
+  // Route produits
   if (path === '/api/products' && req.method === 'GET') {
     try {
-      let products = [];
-      let source = 'fallback';
+      let filteredProducts = [...products];
       
-      if (useSupabase && productsService) {
-        try {
-          const result = await productsService.getAllProducts(query);
-          if (result.success && result.data.length > 0) {
-            products = result.data;
-            source = 'supabase';
-          } else {
-            products = fallbackProducts;
-            source = 'fallback-empty';
-          }
-        } catch (supabaseError) {
-          console.log('Erreur Supabase, fallback:', supabaseError.message);
-          products = fallbackProducts;
-          source = 'fallback-error';
-        }
-      } else {
-        products = fallbackProducts;
-        source = 'fallback-no-supabase';
+      // Filtrer par catégorie
+      if (query.category) {
+        filteredProducts = filteredProducts.filter(p => p.category === query.category);
+      }
+      
+      // Filtrer les produits mis en avant
+      if (query.featured === 'true') {
+        filteredProducts = filteredProducts.filter(p => p.featured);
+      }
+      
+      // Limiter le nombre de résultats
+      if (query.limit) {
+        filteredProducts = filteredProducts.slice(0, parseInt(query.limit));
       }
       
       res.writeHead(200);
       res.end(JSON.stringify({
         success: true,
-        count: products.length,
-        source: source,
-        data: products
+        count: filteredProducts.length,
+        data: filteredProducts
       }));
     } catch (error) {
-      console.error('Erreur API products:', error);
+      res.writeHead(500);
+      res.end(JSON.stringify({
+        success: false,
+        error: 'Erreur lors de la récupération des produits'
+      }));
+    }
+    return;
+  }
+
+  // Route produit par ID
+  if (path.startsWith('/api/products/') && req.method === 'GET') {
+    try {
+      const id = parseInt(path.split('/')[3]);
+      const product = products.find(p => p.id === id);
+      
+      if (!product) {
+        res.writeHead(404);
+        res.end(JSON.stringify({
+          success: false,
+          error: 'Produit non trouvé'
+        }));
+        return;
+      }
+      
       res.writeHead(200);
       res.end(JSON.stringify({
         success: true,
-        count: fallbackProducts.length,
-        source: 'fallback-critical-error',
-        data: fallbackProducts
+        data: product
+      }));
+    } catch (error) {
+      res.writeHead(500);
+      res.end(JSON.stringify({
+        success: false,
+        error: 'Erreur lors de la récupération du produit'
       }));
     }
     return;
@@ -214,9 +203,8 @@ const server = http.createServer(async (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Serveur HYBRIDE v4.0.0 démarré sur port ${PORT}`);
+  console.log(`🚀 Serveur HTTP démarré sur le port ${PORT}`);
   console.log(`📍 URL: http://0.0.0.0:${PORT}`);
-  console.log(`🗄️ Base de données: ${useSupabase ? 'Supabase PostgreSQL' : 'Fallback hardcoded'}`);
-  console.log(`🔧 Variables: SUPABASE_URL=${process.env.SUPABASE_URL ? 'OK' : 'MISSING'}`);
-  console.log(`📊 Test: http://0.0.0.0:${PORT}/api/products`);
+  console.log(`🌐 Frontend: http://localhost:5173`);
+  console.log(`📊 Test API: http://0.0.0.0:${PORT}/api/products`);
 });
