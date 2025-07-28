@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "CCM Jewelry E-commerce - Backend deployment",
   "scripts": {
-    "start": "cd backend && npm start",
+    "start": "node server-hybrid.js",
     "build": "cd backend && npm install",
     "dev": "cd backend && npm run dev"
   },
