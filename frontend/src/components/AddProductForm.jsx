@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import apiService from '../services/apiService'; // Ajouter cet import
 
 const AddProductForm = ({ onClose, onProductAdded, onProductUpdated, editingProduct }) => {
   const [formData, setFormData] = useState({
@@ -95,46 +96,67 @@ const AddProductForm = ({ onClose, onProductAdded, onProductUpdated, editingProd
     setImages(prev => prev.filter(img => img.id !== imageId));
   };
 
-  // Dans la fonction de soumission du formulaire
+  // REMPLACER la fonction handleSubmit par celle-ci :
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('📝 Formulaire soumis avec les valeurs:', formData);
     
+    // Validation
+    if (!formData.name || !formData.price) {
+      alert('Veuillez remplir au moins le nom et le prix');
+      return;
+    }
+
+    setLoading(true);
+
     try {
-      // Vérification des données avant envoi
-      if (!formData.name || !formData.price) {
-        setError('Le nom et le prix sont obligatoires');
-        return;
+      // Préparer les données du produit
+      const productData = {
+        name: formData.name,
+        description: formData.description,
+        price: parseFloat(formData.price),
+        category: formData.category,
+        stock: parseInt(formData.stock, 10) || 0,
+        featured: Boolean(formData.featured),
+        images: images.map(img => typeof img === 'string' ? img : img.preview)
+      };
+
+      console.log('📤 Envoi du produit à l\'API:', productData);
+
+      if (editingProduct) {
+        // Mode édition - utiliser l'API pour mettre à jour
+        const response = await apiService.updateProduct(editingProduct.id, productData);
+        
+        if (response.success) {
+          console.log('✅ Produit mis à jour avec succès');
+          onProductUpdated({
+            ...editingProduct,
+            ...productData,
+            id: editingProduct.id,
+            updatedAt: new Date().toISOString()
+          });
+        } else {
+          throw new Error(response.error || 'Erreur lors de la mise à jour');
+        }
+      } else {
+        // Mode création - utiliser l'API pour créer
+        const response = await apiService.createProduct(productData);
+        
+        if (response.success && response.data) {
+          console.log('✅ Produit créé avec succès:', response.data);
+          onProductAdded(response.data);
+        } else {
+          throw new Error(response.error || 'Erreur lors de la création');
+        }
       }
       
-      // S'assurer que les valeurs numériques sont bien des nombres
-      const productData = {
-        ...formData,
-        price: parseFloat(formData.price),
-        stock: parseInt(formData.stock, 10) || 0
-      };
+      // Fermer le formulaire
+      onClose();
       
-      console.log('📤 Données préparées pour l\'API:', productData);
-      
-      // Appel à la fonction onAddProduct qui est passée en props depuis AdminDashboard
-      await onAddProduct(productData);
-      
-      console.log('✅ Produit ajouté avec succès');
-      
-      // Réinitialisation du formulaire
-      setFormData({
-        name: '',
-        description: '',
-        price: '',
-        category: '',
-        stock: '',
-        featured: false,
-        images: []
-      });
-      setError(null);
-    } catch (err) {
-      console.error('❌ Erreur lors de l\'ajout du produit:', err);
-      setError(`Erreur: ${err.message}`);
+    } catch (error) {
+      console.error('❌ Erreur lors de la sauvegarde:', error);
+      alert(`Erreur: ${error.message}`);
+    } finally {
+      setLoading(false);
     }
   };
 
