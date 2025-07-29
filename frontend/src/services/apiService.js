@@ -25,6 +25,7 @@ const apiService = {
     }
   },
   
+  // Vérifions comment la fonction createProduct est implémentée
   async createProduct(productData) {
     try {
       const response = await axios.post(`${API_URL}/api/products`, productData);

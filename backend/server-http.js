@@ -149,35 +149,165 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Route commandes
-  if (path === '/api/orders' && req.method === 'POST') {
-    let body = '';
-    req.on('data', chunk => {
-      body += chunk.toString();
-    });
-    
-    req.on('end', () => {
-      try {
-        const orderData = JSON.parse(body);
-        const orderId = Math.floor(Math.random() * 10000) + 1000;
+  // Route POST pour ajouter un produit
+  if (path === '/api/products' && req.method === 'POST') {
+    try {
+      // Récupérer les données du body
+      let body = '';
+      req.on('data', chunk => {
+        body += chunk.toString();
+      });
+
+      req.on('end', async () => {
+        try {
+          const productData = JSON.parse(body);
+          
+          if (useSupabase && supabase) {
+            // Ajouter le produit à Supabase
+            console.log('📝 Ajout d\'un nouveau produit dans Supabase:', productData.name);
+            const { data, error } = await supabase
+              .from('products')
+              .insert([productData])
+              .select();
+            
+            if (error) throw error;
+            
+            res.writeHead(201, headers);
+            res.end(JSON.stringify({
+              success: true,
+              message: 'Produit ajouté avec succès',
+              data: data[0]
+            }));
+          } else {
+            // Répondre en mode fallback (sans DB)
+            res.writeHead(201, headers);
+            res.end(JSON.stringify({
+              success: false,
+              message: 'Produit non ajouté - Base de données non disponible',
+              error: 'Supabase non configuré'
+            }));
+          }
+        } catch (error) {
+          console.error('❌ Erreur lors de l\'ajout du produit:', error);
+          res.writeHead(500, headers);
+          res.end(JSON.stringify({
+            success: false,
+            message: 'Erreur lors de l\'ajout du produit',
+            error: error.message
+          }));
+        }
+      });
+    } catch (error) {
+      console.error('❌ Erreur générale:', error);
+      res.writeHead(500, headers);
+      res.end(JSON.stringify({
+        success: false,
+        error: error.message
+      }));
+    }
+    return;
+  }
+
+  // Route PUT pour modifier un produit
+  if (path.match(/^\/api\/products\/(\d+)$/) && req.method === 'PUT') {
+    try {
+      const productId = path.split('/').pop();
+      
+      // Récupérer les données du body
+      let body = '';
+      req.on('data', chunk => {
+        body += chunk.toString();
+      });
+
+      req.on('end', async () => {
+        try {
+          const productData = JSON.parse(body);
+          
+          if (useSupabase && supabase) {
+            // Mettre à jour le produit dans Supabase
+            console.log(`📝 Mise à jour du produit ${productId}:`, productData.name);
+            const { data, error } = await supabase
+              .from('products')
+              .update(productData)
+              .eq('id', productId)
+              .select();
+            
+            if (error) throw error;
+            
+            res.writeHead(200, headers);
+            res.end(JSON.stringify({
+              success: true,
+              message: 'Produit mis à jour avec succès',
+              data: data[0]
+            }));
+          } else {
+            // Répondre en mode fallback (sans DB)
+            res.writeHead(200, headers);
+            res.end(JSON.stringify({
+              success: false,
+              message: 'Produit non mis à jour - Base de données non disponible',
+              error: 'Supabase non configuré'
+            }));
+          }
+        } catch (error) {
+          console.error(`❌ Erreur lors de la mise à jour du produit ${productId}:`, error);
+          res.writeHead(500, headers);
+          res.end(JSON.stringify({
+            success: false,
+            message: 'Erreur lors de la mise à jour du produit',
+            error: error.message
+          }));
+        }
+      });
+    } catch (error) {
+      console.error('❌ Erreur générale:', error);
+      res.writeHead(500, headers);
+      res.end(JSON.stringify({
+        success: false,
+        error: error.message
+      }));
+    }
+    return;
+  }
+
+  // Route DELETE pour supprimer un produit
+  if (path.match(/^\/api\/products\/(\d+)$/) && req.method === 'DELETE') {
+    try {
+      const productId = path.split('/').pop();
+      
+      if (useSupabase && supabase) {
+        // Supprimer le produit de Supabase
+        console.log(`🗑️ Suppression du produit ${productId}`);
+        const { error } = await supabase
+          .from('products')
+          .delete()
+          .eq('id', productId);
         
-        res.writeHead(201, headers);
+        if (error) throw error;
+        
+        res.writeHead(200, headers);
         res.end(JSON.stringify({
           success: true,
-          message: 'Commande créée avec succès',
-          data: {
-            orderId: orderId,
-            status: 'pending'
-          }
+          message: 'Produit supprimé avec succès'
         }));
-      } catch (error) {
-        res.writeHead(500, headers);
+      } else {
+        // Répondre en mode fallback (sans DB)
+        res.writeHead(200, headers);
         res.end(JSON.stringify({
           success: false,
-          error: 'Erreur lors de la création de la commande'
+          message: 'Produit non supprimé - Base de données non disponible',
+          error: 'Supabase non configuré'
         }));
       }
-    });
+    } catch (error) {
+      console.error(`❌ Erreur lors de la suppression du produit:`, error);
+      res.writeHead(500, headers);
+      res.end(JSON.stringify({
+        success: false,
+        message: 'Erreur lors de la suppression du produit',
+        error: error.message
+      }));
+    }
     return;
   }
 
