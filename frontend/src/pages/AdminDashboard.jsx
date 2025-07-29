@@ -4,7 +4,7 @@ import AddProductForm from '../components/AddProductForm';
 import StockManagement from '../components/StockManagement';
 import SalesManagement from '../components/SalesManagement';
 import CollectionsManagement from '../components/CollectionsManagement';
-import apiService from '../services/apiService';
+import apiService from '../services/apiService.js';
 import { stockService } from '../services/stockService';
 
 const AdminDashboard = () => {
