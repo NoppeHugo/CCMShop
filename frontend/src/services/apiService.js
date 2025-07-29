@@ -27,11 +27,25 @@ const apiService = {
   
   // Vérifions comment la fonction createProduct est implémentée
   async createProduct(productData) {
+    console.log('🔍 Tentative de création d\'un produit:', productData);
     try {
-      const response = await axios.post(`${API_URL}/api/products`, productData);
+      const API_URL = import.meta.env.VITE_API_URL || 'https://ccmshop-production.up.railway.app';
+      console.log('📤 Envoi vers:', `${API_URL}/api/products`);
+      
+      const response = await axios.post(`${API_URL}/api/products`, productData, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      console.log('✅ Réponse reçue:', response.data);
       return response.data;
     } catch (error) {
-      console.error('Erreur lors de la création du produit:', error);
+      console.error('❌ Erreur lors de la création du produit:', error);
+      if (error.response) {
+        console.error('- Statut:', error.response.status);
+        console.error('- Données:', error.response.data);
+      }
       throw error;
     }
   },

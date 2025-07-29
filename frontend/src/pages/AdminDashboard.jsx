@@ -196,6 +196,25 @@ const AdminDashboard = () => {
         >
           Rafraîchir les données
         </button>
+        
+        {/* Bouton de test d'API */}
+        <button
+          onClick={() => {
+            import('../utils/adminApiTest').then(module => {
+              module.runAdminApiTests().then(success => {
+                if (success) {
+                  alert('✅ Test d\'API réussi! Vérifiez la console pour plus de détails.');
+                  loadProducts(); // Recharger les produits pour voir le nouveau
+                } else {
+                  alert('❌ Test d\'API échoué. Vérifiez la console pour les erreurs.');
+                }
+              });
+            });
+          }}
+          className="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600"
+        >
+          Tester API
+        </button>
       </div>
       
       {/* Formulaire d'ajout de produit */}

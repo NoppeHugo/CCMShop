@@ -95,44 +95,47 @@ const AddProductForm = ({ onClose, onProductAdded, onProductUpdated, editingProd
     setImages(prev => prev.filter(img => img.id !== imageId));
   };
 
-  const handleSubmit = (e) => {
+  // Dans la fonction de soumission du formulaire
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-
-    // Validation simple
-    if (!formData.name || !formData.price) {
-      alert('Veuillez remplir au moins le nom et le prix');
-      setLoading(false);
-      return;
-    }
-
-    // Simulation de sauvegarde
-    setTimeout(() => {
-      if (editingProduct) {
-        // Mode édition - mettre à jour le produit existant
-        const updatedProduct = {
-          ...editingProduct,
-          ...formData,
-          price: parseFloat(formData.price),
-          stock: parseInt(formData.stock),
-          images: images.map(img => typeof img === 'string' ? img : img.preview),
-          updatedAt: new Date().toISOString()
-        };
-        onProductUpdated(updatedProduct);
-      } else {
-        // Mode création - créer un nouveau produit
-        const newProduct = {
-          id: Date.now(),
-          ...formData,
-          price: parseFloat(formData.price),
-          stock: parseInt(formData.stock),
-          images: images.map(img => typeof img === 'string' ? img : img.preview),
-          createdAt: new Date().toISOString()
-        };
-        onProductAdded(newProduct);
+    console.log('📝 Formulaire soumis avec les valeurs:', formData);
+    
+    try {
+      // Vérification des données avant envoi
+      if (!formData.name || !formData.price) {
+        setError('Le nom et le prix sont obligatoires');
+        return;
       }
-      setLoading(false);
-    }, 1000);
+      
+      // S'assurer que les valeurs numériques sont bien des nombres
+      const productData = {
+        ...formData,
+        price: parseFloat(formData.price),
+        stock: parseInt(formData.stock, 10) || 0
+      };
+      
+      console.log('📤 Données préparées pour l\'API:', productData);
+      
+      // Appel à la fonction onAddProduct qui est passée en props depuis AdminDashboard
+      await onAddProduct(productData);
+      
+      console.log('✅ Produit ajouté avec succès');
+      
+      // Réinitialisation du formulaire
+      setFormData({
+        name: '',
+        description: '',
+        price: '',
+        category: '',
+        stock: '',
+        featured: false,
+        images: []
+      });
+      setError(null);
+    } catch (err) {
+      console.error('❌ Erreur lors de l\'ajout du produit:', err);
+      setError(`Erreur: ${err.message}`);
+    }
   };
 
   return (
