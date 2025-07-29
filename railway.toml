@@ -5,8 +5,3 @@ builder = "nixpacks"
 
 [deploy]
 startCommand = "node backend/server-http.js"
-healthcheckPath = "/"
-healthcheckTimeout = 300
-
-[variables]
-NODE_ENV = "production"
