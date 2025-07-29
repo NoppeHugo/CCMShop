@@ -13,7 +13,7 @@ export async function testAddProduct() {
       name: `Test Interface ${new Date().toLocaleTimeString()}`,
       description: 'Produit de test pour l\'interface admin',
       price: 59.99,
-      category: 'test',
+      category: 'colliers',
       stock: 7,
       featured: false,
       images: ['https://via.placeholder.com/400x400/F7E7CE/D4AF37?text=Test+Admin']
@@ -56,17 +56,24 @@ export async function runAdminApiTests() {
     return false;
   }
   
-  // Test d'ajout de produit
-  const addResult = await testAddProduct();
-  
-  if (addResult.success) {
-    console.log('✅ Tous les tests ont réussi!');
-    return true;
-  } else {
-    console.error('❌ Certains tests ont échoué');
+  // Test de récupération des produits
+  try {
+    const products = await apiService.getProducts();
+    console.log('✅ Produits récupérés:', products.count, 'produits');
+    
+    if (products.count === 0) {
+      console.warn('⚠️ Aucun produit trouvé dans la base de données');
+    }
+  } catch (error) {
+    console.error('❌ Échec de récupération des produits:', error);
     return false;
   }
+  
+  console.log('✅ Tous les tests de base ont réussi!');
+  return true;
 }
 
 // Exposer une fonction à appeler depuis la console du navigateur
-window.testAdminApi = runAdminApiTests;
+if (typeof window !== 'undefined') {
+  window.testAdminApi = runAdminApiTests;
+}

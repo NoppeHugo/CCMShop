@@ -5,12 +5,13 @@ const API_URL = import.meta.env.VITE_API_URL || 'https://ccmshop-production.up.r
 
 console.log('🔧 API URL configurée:', API_URL);
 
-// Configuration axios
+// Configuration axios avec intercepteurs pour le débogage
 const api = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json'
-  }
+  },
+  timeout: 30000 // 30 secondes de timeout
 });
 
 // Intercepteur pour logger les requêtes
@@ -53,9 +54,10 @@ const apiService = {
   getProducts: async () => {
     try {
       const response = await api.get('/api/products');
+      console.log('✅ Produits récupérés:', response.data);
       return response.data;
     } catch (error) {
-      console.error('Erreur lors de la récupération des produits:', error);
+      console.error('❌ Erreur lors de la récupération des produits:', error);
       throw error;
     }
   },
@@ -67,14 +69,18 @@ const apiService = {
       
       // S'assurer que les types sont corrects
       const cleanProductData = {
-        ...productData,
-        price: parseFloat(productData.price),
+        name: String(productData.name || ''),
+        description: String(productData.description || ''),
+        price: parseFloat(productData.price) || 0,
+        category: String(productData.category || ''),
         stock: parseInt(productData.stock, 10) || 0,
         featured: Boolean(productData.featured),
-        images: Array.isArray(productData.images) ? productData.images : [productData.images].filter(Boolean)
+        images: Array.isArray(productData.images) 
+          ? productData.images 
+          : (productData.images ? [productData.images] : [])
       };
       
-      console.log('📤 Données nettoyées:', cleanProductData);
+      console.log('📤 Données nettoyées envoyées:', cleanProductData);
       
       const response = await api.post('/api/products', cleanProductData);
       console.log('✅ Produit créé avec succès:', response.data);
@@ -88,10 +94,12 @@ const apiService = {
   // Mettre à jour un produit
   updateProduct: async (id, productData) => {
     try {
+      console.log('🔧 Mise à jour du produit:', id, productData);
       const response = await api.put(`/api/products/${id}`, productData);
+      console.log('✅ Produit mis à jour:', response.data);
       return response.data;
     } catch (error) {
-      console.error('Erreur lors de la mise à jour du produit:', error);
+      console.error('❌ Erreur lors de la mise à jour du produit:', error);
       throw error;
     }
   },
@@ -99,10 +107,12 @@ const apiService = {
   // Supprimer un produit
   deleteProduct: async (id) => {
     try {
+      console.log('🗑️ Suppression du produit:', id);
       const response = await api.delete(`/api/products/${id}`);
+      console.log('✅ Produit supprimé:', response.data);
       return response.data;
     } catch (error) {
-      console.error('Erreur lors de la suppression du produit:', error);
+      console.error('❌ Erreur lors de la suppression du produit:', error);
       throw error;
     }
   },
@@ -113,7 +123,7 @@ const apiService = {
       const response = await api.get(`/api/products/${id}`);
       return response.data;
     } catch (error) {
-      console.error('Erreur lors de la récupération du produit:', error);
+      console.error('❌ Erreur lors de la récupération du produit:', error);
       throw error;
     }
   }
