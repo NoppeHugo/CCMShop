@@ -1,35 +1,8 @@
-require('dotenv').config({ path: __dirname + '/.env' });
 const http = require('http');
 const url = require('url');
+const { createClient } = require('@supabase/supabase-js');
 
-// 🚀 SERVEUR HYBRIDE v4.0.0 - FORCE SUPABASE EN PRODUCTION
-console.log('🚀 Démarrage serveur HYBRIDE v4.0.0 avec FORCE Supabase');
-
-// Test configuration Supabase
-let useSupabase = false;
-let productsService = null;
-
-if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  try {
-    const { testConnection } = require('./config/supabase');
-    productsService = require('./services/productsService');
-    
-    testConnection().then(() => {
-      console.log('✅ Supabase PostgreSQL activé');
-      useSupabase = true;
-    }).catch(error => {
-      console.log('❌ Supabase échec:', error.message);
-    });
-    
-    useSupabase = true; // Force l'utilisation même en cas d'erreur de test initial
-  } catch (error) {
-    console.log('⚠️ Module Supabase non trouvé:', error.message);
-  }
-} else {
-  console.log('⚠️ Variables Supabase manquantes');
-}
-
-// Données fallback (ancien système)
+// Données de secours (fallback)
 const fallbackProducts = [
   {
     id: 1,
@@ -73,99 +46,103 @@ const fallbackProducts = [
   }
 ];
 
-const server = http.createServer(async (req, res) => {
-  // Headers CORS
-  const allowedOrigins = [
-    'http://localhost:5173',
-    'http://localhost:5174',
-    'http://localhost:3000',
-    'https://ccm-shop.vercel.app'
-  ];
-  
-  const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  } else {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-  }
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.setHeader('Content-Type', 'application/json');
+// Configuration Supabase
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+let supabase = null;
+let useSupabase = false;
 
+// Essayer d'initialiser Supabase si les variables d'environnement existent
+if (supabaseUrl && supabaseKey) {
+  try {
+    supabase = createClient(supabaseUrl, supabaseKey);
+    useSupabase = true;
+    console.log('🔌 Supabase connecté avec succès');
+    console.log(`🔗 URL: ${supabaseUrl.substring(0, 20)}...`);
+  } catch (error) {
+    console.error('❌ Erreur connexion Supabase:', error.message);
+    useSupabase = false;
+  }
+} else {
+  console.log('⚠️ Variables Supabase non configurées. Utilisation du mode fallback.');
+}
+
+// Headers CORS pour les requêtes
+const headers = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS, PUT, DELETE',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Content-Type': 'application/json'
+};
+
+// Création du serveur HTTP
+const server = http.createServer(async (req, res) => {
+  // Gérer les requêtes OPTIONS (CORS pre-flight)
   if (req.method === 'OPTIONS') {
-    res.writeHead(200);
+    res.writeHead(204, headers);
     res.end();
     return;
   }
 
+  // Parser l'URL pour obtenir le chemin
   const parsedUrl = url.parse(req.url, true);
   const path = parsedUrl.pathname;
-  const query = parsedUrl.query;
 
-  console.log(`${req.method} ${path} (${useSupabase ? 'Supabase' : 'Fallback'})`);
-
-  // Route de base avec diagnostic
+  // Page d'accueil / diagnostic API
   if (path === '/' && req.method === 'GET') {
-    res.writeHead(200);
+    res.writeHead(200, headers);
     res.end(JSON.stringify({
-      message: 'API E-commerce Bijoux - SERVEUR HYBRIDE v4.0.0 ✨',
-      version: '4.0.0',
-      status: 'active',
-      database: useSupabase ? 'Supabase PostgreSQL' : 'Fallback hardcoded',
-      supabaseStatus: useSupabase ? 'Connecté' : 'Non disponible',
+      message: "API E-commerce Bijoux v2.0.0",
+      status: "OK",
+      database: useSupabase ? "Supabase PostgreSQL" : "Mémoire (fallback)",
+      supabaseStatus: useSupabase ? "Connecté" : "Non configuré",
       variables: {
-        SUPABASE_URL: process.env.SUPABASE_URL ? 'Configuré' : 'Manquant',
-        SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY ? 'Configuré' : 'Manquant'
-      },
-      endpoints: [
-        'GET / - Cette page avec diagnostic',
-        'GET /api/products - Liste des produits',
-        'POST /api/orders - Créer une commande'
-      ]
+        SUPABASE_URL: supabaseUrl ? "Configurée" : "Non configurée",
+        SUPABASE_KEY: supabaseKey ? "Configurée" : "Non configurée"
+      }
     }));
     return;
   }
 
-  // Route produits avec Supabase prioritaire
+  // Route produits
   if (path === '/api/products' && req.method === 'GET') {
     try {
-      let products = [];
-      let source = 'fallback';
-      
-      if (useSupabase && productsService) {
-        try {
-          const result = await productsService.getAllProducts(query);
-          if (result.success && result.data.length > 0) {
-            products = result.data;
-            source = 'supabase';
-          } else {
-            products = fallbackProducts;
-            source = 'fallback-empty';
-          }
-        } catch (supabaseError) {
-          console.log('Erreur Supabase, fallback:', supabaseError.message);
-          products = fallbackProducts;
-          source = 'fallback-error';
-        }
+      if (useSupabase && supabase) {
+        // Utiliser Supabase
+        const { data, error } = await supabase
+          .from('products')
+          .select('*');
+        
+        if (error) throw error;
+        
+        res.writeHead(200, headers);
+        res.end(JSON.stringify({
+          success: true,
+          count: data.length,
+          source: 'supabase',
+          database: 'Supabase PostgreSQL',
+          data: data
+        }));
       } else {
-        products = fallbackProducts;
-        source = 'fallback-no-supabase';
+        // Fallback sur les données hardcodées
+        res.writeHead(200, headers);
+        res.end(JSON.stringify({
+          success: true,
+          count: fallbackProducts.length,
+          source: 'fallback',
+          database: 'Mémoire (fallback)',
+          data: fallbackProducts
+        }));
       }
-      
-      res.writeHead(200);
-      res.end(JSON.stringify({
-        success: true,
-        count: products.length,
-        source: source,
-        data: products
-      }));
     } catch (error) {
-      console.error('Erreur API products:', error);
-      res.writeHead(200);
+      console.error('Erreur:', error);
+      res.writeHead(200, headers);
       res.end(JSON.stringify({
         success: true,
         count: fallbackProducts.length,
-        source: 'fallback-critical-error',
+        source: 'fallback-error',
+        error: error.message,
+        database: 'Mémoire (fallback après erreur)',
         data: fallbackProducts
       }));
     }
@@ -184,7 +161,7 @@ const server = http.createServer(async (req, res) => {
         const orderData = JSON.parse(body);
         const orderId = Math.floor(Math.random() * 10000) + 1000;
         
-        res.writeHead(201);
+        res.writeHead(201, headers);
         res.end(JSON.stringify({
           success: true,
           message: 'Commande créée avec succès',
@@ -194,7 +171,7 @@ const server = http.createServer(async (req, res) => {
           }
         }));
       } catch (error) {
-        res.writeHead(500);
+        res.writeHead(500, headers);
         res.end(JSON.stringify({
           success: false,
           error: 'Erreur lors de la création de la commande'
@@ -205,18 +182,20 @@ const server = http.createServer(async (req, res) => {
   }
 
   // Route 404
-  res.writeHead(404);
+  res.writeHead(404, headers);
   res.end(JSON.stringify({
-    error: 'Route non trouvée',
-    message: 'Cette route n\'existe pas sur notre API'
+    success: false,
+    error: 'Route non trouvée'
   }));
 });
 
+// Port d'écoute (pour Railway)
 const PORT = process.env.PORT || 5000;
+
+// Démarrage du serveur
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Serveur HYBRIDE v4.0.0 démarré sur port ${PORT}`);
+  console.log(`🚀 Serveur HTTP démarré sur le port ${PORT}`);
   console.log(`📍 URL: http://0.0.0.0:${PORT}`);
-  console.log(`🗄️ Base de données: ${useSupabase ? 'Supabase PostgreSQL' : 'Fallback hardcoded'}`);
-  console.log(`🔧 Variables: SUPABASE_URL=${process.env.SUPABASE_URL ? 'OK' : 'MISSING'}`);
-  console.log(`📊 Test: http://0.0.0.0:${PORT}/api/products`);
+  console.log(`🌐 Frontend: http://localhost:5173`);
+  console.log(`📊 Test API: http://0.0.0.0:${PORT}/api/products`);
 });

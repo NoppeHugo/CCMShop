@@ -4,7 +4,7 @@
   "description": "Backend API pour site e-commerce de bijoux",
   "main": "server.js",
   "scripts": {
-    "start": "node server-hybrid.js",
+    "start": "node server-http.js",
     "start:supabase": "node server-supabase.js",
     "dev": "nodemon server.js",
     "build": "echo 'No build step required'",

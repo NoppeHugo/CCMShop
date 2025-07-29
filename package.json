@@ -1,11 +1,21 @@
 {
-  "name": "ccm-shop-monorepo",
+  "name": "jewelry-ecommerce-backend",
   "version": "1.0.0",
-  "description": "CCM Jewelry E-commerce - Backend deployment",
+  "description": "Backend API pour site e-commerce de bijoux",
+  "main": "server.js",
   "scripts": {
-    "start": "node server-diagnostic.js",
-    "build": "cd backend && npm install",
-    "dev": "cd backend && npm run dev"
+    "start": "node server-http.js",
+    "start:supabase": "node server-supabase.js",
+    "dev": "nodemon server.js",
+    "build": "echo 'No build step required'",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "test:supabase": "node test-supabase.js",
+    "check:deployment": "node check-deployment.js",
+    "deploy": "node deploy.js",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio"
   },
   "engines": {
     "node": ">=18.0.0",
