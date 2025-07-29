@@ -35,17 +35,30 @@ const AdminDashboard = () => {
   const loadProducts = async () => {
     try {
       setLoading(true);
+      console.log('🔄 Chargement des produits...');
+      
       const response = await apiService.getProducts();
-      if (response && response.data) {
+      console.log('📦 Réponse reçue:', response);
+      
+      if (response && response.data && Array.isArray(response.data)) {
+        console.log('✅ Produits trouvés:', response.data.length);
         setProducts(response.data);
+        
         // Mise à jour des données dans le stockService
-        await stockService.updateProductsData(response.data);
-        setStockData({ ...stockService.stockData });
+        if (stockService && stockService.updateProductsData) {
+          await stockService.updateProductsData(response.data);
+          setStockData({ ...stockService.stockData });
+        }
+      } else {
+        console.warn('⚠️ Aucun produit trouvé ou structure incorrecte');
+        setProducts([]);
       }
+      
       setError(null);
     } catch (err) {
-      console.error("Erreur lors du chargement des produits:", err);
+      console.error("❌ Erreur lors du chargement des produits:", err);
       setError(`Erreur: ${err.message}`);
+      setProducts([]); // S'assurer que products est un tableau vide en cas d'erreur
     } finally {
       setLoading(false);
     }

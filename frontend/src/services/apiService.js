@@ -54,8 +54,31 @@ const apiService = {
   getProducts: async () => {
     try {
       const response = await api.get('/api/products');
-      console.log('✅ Produits récupérés:', response.data);
-      return response.data;
+      console.log('✅ Réponse API complète:', response.data);
+      
+      // L'API retourne { success, count, source, database, data }
+      // Nous devons retourner la structure attendue par AdminDashboard
+      if (response.data && response.data.success && response.data.data) {
+        const result = {
+          success: response.data.success,
+          count: response.data.count,
+          source: response.data.source,
+          database: response.data.database,
+          data: response.data.data // Les produits sont ici
+        };
+        
+        console.log('✅ Produits formatés pour le frontend:', result);
+        return result;
+      }
+      
+      // Fallback si la structure est différente
+      console.warn('⚠️ Structure de réponse inattendue:', response.data);
+      return {
+        success: false,
+        count: 0,
+        source: 'api-error',
+        data: []
+      };
     } catch (error) {
       console.error('❌ Erreur lors de la récupération des produits:', error);
       throw error;
