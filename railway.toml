@@ -4,4 +4,9 @@ version = "3"
 builder = "nixpacks"
 
 [deploy]
-startCommand = "node backend/server-http.js"
+startCommand = "cd backend && npm install && node server-http.js"
+healthcheckPath = "/"
+healthcheckTimeout = 300
+
+[variables]
+NODE_ENV = "production"
