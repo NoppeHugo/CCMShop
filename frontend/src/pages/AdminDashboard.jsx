@@ -35,32 +35,52 @@ const AdminDashboard = () => {
   const loadProducts = async () => {
     try {
       setLoading(true);
-      console.log('🔄 Chargement des produits...');
+      console.group('🔄 AdminDashboard - Chargement des produits');
       
+      console.log('1. Début du chargement...');
       const response = await apiService.getProducts();
-      console.log('📦 Réponse reçue:', response);
+      console.log('2. Réponse brute de apiService.getProducts():', response);
+      
+      // Vérification détaillée de la structure
+      console.log('3. Type de response:', typeof response);
+      console.log('4. response.data existe:', !!response.data);
+      console.log('5. response.data est un tableau:', Array.isArray(response.data));
       
       if (response && response.data && Array.isArray(response.data)) {
-        console.log('✅ Produits trouvés:', response.data.length);
-        setProducts(response.data);
+        console.log('6. ✅ Structure valide détectée');
+        console.log('7. Nombre de produits:', response.data.length);
+        console.log('8. Premier produit:', response.data[0]);
         
-        // Mise à jour des données dans le stockService
+        setProducts(response.data);
+        console.log('9. ✅ State products mis à jour');
+        
+        // Mise à jour du stockService
         if (stockService && stockService.updateProductsData) {
+          console.log('10. Mise à jour du stockService...');
           await stockService.updateProductsData(response.data);
           setStockData({ ...stockService.stockData });
+          console.log('11. ✅ StockService mis à jour');
         }
       } else {
-        console.warn('⚠️ Aucun produit trouvé ou structure incorrecte');
+        console.error('6. ❌ Structure invalide');
+        console.error('- response:', response);
+        console.error('- response.data:', response?.data);
+        console.error('- Type de response.data:', typeof response?.data);
+        
         setProducts([]);
       }
       
       setError(null);
+      console.log('12. ✅ Chargement terminé avec succès');
+      
     } catch (err) {
       console.error("❌ Erreur lors du chargement des produits:", err);
+      console.error("Stack trace:", err.stack);
       setError(`Erreur: ${err.message}`);
-      setProducts([]); // S'assurer que products est un tableau vide en cas d'erreur
+      setProducts([]);
     } finally {
       setLoading(false);
+      console.groupEnd();
     }
   };
 
@@ -259,6 +279,22 @@ const AdminDashboard = () => {
           className="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600"
         >
           Tester API
+        </button>
+        
+        {/* Bouton de débogage */}
+        <button
+          onClick={() => {
+            console.group('🔍 État actuel du composant AdminDashboard');
+            console.log('- products:', products);
+            console.log('- products.length:', products.length);
+            console.log('- loading:', loading);
+            console.log('- error:', error);
+            console.log('- apiStatus:', apiStatus);
+            console.groupEnd();
+          }}
+          className="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600"
+        >
+          Debug État
         </button>
       </div>
       
