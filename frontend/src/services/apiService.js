@@ -1,93 +1,119 @@
 import axios from 'axios';
 
-// URL de base de l'API (variable d'environnement ou hardcodée)
+// URL de base de l'API
 const API_URL = import.meta.env.VITE_API_URL || 'https://ccmshop-production.up.railway.app';
 
+console.log('🔧 API URL configurée:', API_URL);
+
+// Configuration axios
+const api = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
+
+// Intercepteur pour logger les requêtes
+api.interceptors.request.use(
+  (config) => {
+    console.log(`📤 ${config.method?.toUpperCase()} ${config.url}`, config.data);
+    return config;
+  },
+  (error) => {
+    console.error('❌ Erreur de requête:', error);
+    return Promise.reject(error);
+  }
+);
+
+// Intercepteur pour logger les réponses
+api.interceptors.response.use(
+  (response) => {
+    console.log(`📥 Réponse ${response.status}:`, response.data);
+    return response;
+  },
+  (error) => {
+    console.error('❌ Erreur de réponse:', error.response?.data || error.message);
+    return Promise.reject(error);
+  }
+);
+
 const apiService = {
-  // Produits
-  async getProducts() {
+  // Vérifier le statut de l'API
+  checkApiStatus: async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/products`);
+      const response = await api.get('/');
+      return response.data;
+    } catch (error) {
+      console.error('Erreur lors de la vérification du statut de l\'API:', error);
+      throw error;
+    }
+  },
+
+  // Récupérer tous les produits
+  getProducts: async () => {
+    try {
+      const response = await api.get('/api/products');
       return response.data;
     } catch (error) {
       console.error('Erreur lors de la récupération des produits:', error);
       throw error;
     }
   },
-  
-  async getProductById(id) {
+
+  // Créer un nouveau produit
+  createProduct: async (productData) => {
     try {
-      const response = await axios.get(`${API_URL}/api/products/${id}`);
-      return response.data;
-    } catch (error) {
-      console.error(`Erreur lors de la récupération du produit ${id}:`, error);
-      throw error;
-    }
-  },
-  
-  // Vérifions comment la fonction createProduct est implémentée
-  async createProduct(productData) {
-    console.log('🔍 Tentative de création d\'un produit:', productData);
-    try {
-      const API_URL = import.meta.env.VITE_API_URL || 'https://ccmshop-production.up.railway.app';
-      console.log('📤 Envoi vers:', `${API_URL}/api/products`);
+      console.log('🔍 Création d\'un produit:', productData);
       
-      const response = await axios.post(`${API_URL}/api/products`, productData, {
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
+      // S'assurer que les types sont corrects
+      const cleanProductData = {
+        ...productData,
+        price: parseFloat(productData.price),
+        stock: parseInt(productData.stock, 10) || 0,
+        featured: Boolean(productData.featured),
+        images: Array.isArray(productData.images) ? productData.images : [productData.images].filter(Boolean)
+      };
       
-      console.log('✅ Réponse reçue:', response.data);
+      console.log('📤 Données nettoyées:', cleanProductData);
+      
+      const response = await api.post('/api/products', cleanProductData);
+      console.log('✅ Produit créé avec succès:', response.data);
       return response.data;
     } catch (error) {
-      console.error('❌ Erreur lors de la création du produit:', error);
-      if (error.response) {
-        console.error('- Statut:', error.response.status);
-        console.error('- Données:', error.response.data);
-      }
+      console.error('❌ Erreur lors de la création du produit:', error.response?.data || error.message);
       throw error;
     }
   },
-  
-  async updateProduct(id, productData) {
+
+  // Mettre à jour un produit
+  updateProduct: async (id, productData) => {
     try {
-      const response = await axios.put(`${API_URL}/api/products/${id}`, productData);
+      const response = await api.put(`/api/products/${id}`, productData);
       return response.data;
     } catch (error) {
-      console.error(`Erreur lors de la mise à jour du produit ${id}:`, error);
+      console.error('Erreur lors de la mise à jour du produit:', error);
       throw error;
     }
   },
-  
-  async deleteProduct(id) {
+
+  // Supprimer un produit
+  deleteProduct: async (id) => {
     try {
-      const response = await axios.delete(`${API_URL}/api/products/${id}`);
+      const response = await api.delete(`/api/products/${id}`);
       return response.data;
     } catch (error) {
-      console.error(`Erreur lors de la suppression du produit ${id}:`, error);
+      console.error('Erreur lors de la suppression du produit:', error);
       throw error;
     }
   },
-  
-  // Commandes
-  async createOrder(orderData) {
+
+  // Récupérer un produit par ID
+  getProduct: async (id) => {
     try {
-      const response = await axios.post(`${API_URL}/api/orders`, orderData);
+      const response = await api.get(`/api/products/${id}`);
       return response.data;
     } catch (error) {
-      console.error('Erreur lors de la création de la commande:', error);
-      throw error;
-    }
-  },
-  
-  // Vérification API/DB
-  async checkApiStatus() {
-    try {
-      const response = await axios.get(`${API_URL}/`);
-      return response.data;
-    } catch (error) {
-      console.error('Erreur lors de la vérification du statut de l\'API:', error);
+      console.error('Erreur lors de la récupération du produit:', error);
       throw error;
     }
   }

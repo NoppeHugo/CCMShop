@@ -54,13 +54,45 @@ const AdminDashboard = () => {
   // Ajouter un nouveau produit via l'API
   const addProduct = async (newProduct) => {
     try {
+      console.log('🔍 AdminDashboard - Début ajout produit:', newProduct);
       setLoading(true);
-      await apiService.createProduct(newProduct);
-      await loadProducts(); // Recharger les produits
+      setError(null);
+      
+      // Validation basique côté client
+      if (!newProduct.name || !newProduct.price) {
+        throw new Error('Le nom et le prix sont obligatoires');
+      }
+      
+      // Appel API
+      console.log('📡 AdminDashboard - Appel API createProduct...');
+      const result = await apiService.createProduct(newProduct);
+      console.log('✅ AdminDashboard - Réponse API:', result);
+      
+      // Recharger les produits
+      console.log('🔄 AdminDashboard - Rechargement des produits...');
+      await loadProducts();
+      
+      // Fermer le formulaire
       setShowAddForm(false);
+      
+      // Notification de succès
+      alert('✅ Produit ajouté avec succès dans la base de données !');
+      
     } catch (err) {
-      console.error("Erreur lors de l'ajout du produit:", err);
-      setError(`Erreur: ${err.message}`);
+      console.error("❌ AdminDashboard - Erreur lors de l'ajout du produit:", err);
+      
+      // Log détaillé pour le débogage
+      if (err.response) {
+        console.error('📄 Détails de l\'erreur:', {
+          status: err.response.status,
+          data: err.response.data,
+          headers: err.response.headers
+        });
+      }
+      
+      const errorMessage = err.response?.data?.error || err.message || 'Erreur inconnue';
+      setError(`Erreur lors de l'ajout: ${errorMessage}`);
+      alert(`❌ Erreur: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
