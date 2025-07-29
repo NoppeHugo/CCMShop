@@ -7,7 +7,6 @@ builder = "nixpacks"
 startCommand = "node backend/server-http.js"
 healthcheckPath = "/"
 healthcheckTimeout = 300
-restartPolicyType = "on-failure"
 
 [variables]
 NODE_ENV = "production"
