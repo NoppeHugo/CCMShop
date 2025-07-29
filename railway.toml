@@ -4,4 +4,4 @@ version = "3"
 builder = "nixpacks"
 
 [deploy]
-startCommand = "node backend/server-hybrid.js"
+startCommand = "node backend/node server-http.js"
