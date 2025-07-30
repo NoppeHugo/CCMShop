@@ -48,39 +48,40 @@ api.interceptors.response.use(
 
 // Services pour les produits
 export const productsService = {
-  // Récupérer tous les produits (backend seulement pour le site, backend + admin pour l'admin)
+  // Récupérer tous les produits depuis l'API Supabase uniquement
   getAll: async (params = {}) => {
     try {
-      // Essayer de récupérer depuis le backend
+      console.log('🔍 Récupération des produits depuis l\'API Supabase...');
+      
+      // Récupérer depuis l'API Supabase
       const response = await api.get('/api/products', { params });
+      console.log('📥 Réponse API brute:', response.data);
       
-      // Le backend retourne { success: true, data: [...] }
-      const backendProducts = response.data?.data || response.data || [];
+      // Gérer la structure de réponse Supabase
+      let products = [];
       
-      // Si on est dans l'interface admin (détecté par l'URL ou localStorage admin connecté)
-      const isAdminContext = window.location.pathname.includes('/admin') || 
-                            localStorage.getItem('isAdminConnected');
-      
-      if (isAdminContext) {
-        // Mode admin : combiner backend + localStorage
-        const adminProducts = JSON.parse(localStorage.getItem('adminProducts') || '[]');
-        const allProducts = [...backendProducts, ...adminProducts];
-        return { data: allProducts };
+      if (response.data.success && response.data.data) {
+        // Structure Supabase : { success: true, data: [...] }
+        products = response.data.data;
+        console.log('✅ Produits Supabase récupérés:', products.length);
+      } else if (Array.isArray(response.data)) {
+        // Structure directe array
+        products = response.data;
+        console.log('✅ Produits array récupérés:', products.length);
       } else {
-        // Mode site normal : seulement le backend
-        return { data: backendProducts };
+        // Autre format
+        products = response.data?.data || [];
+        console.log('⚠️ Structure inattendue, produits extraits:', products.length);
       }
+      
+      return { data: products };
+      
     } catch (error) {
-      // Backend non disponible - utiliser localStorage seulement si on est en admin
-      const isAdminContext = window.location.pathname.includes('/admin') || 
-                            localStorage.getItem('isAdminConnected');
+      console.error('❌ Erreur API produits:', error);
       
-      if (isAdminContext) {
-        const adminProducts = JSON.parse(localStorage.getItem('adminProducts') || '[]');
-        return { data: adminProducts };
-      } else {
-        return { data: [] }; // Site normal sans backend = pas de produits
-      }
+      // En cas d'erreur, retourner un tableau vide
+      // Ne plus utiliser localStorage comme fallback
+      return { data: [] };
     }
   },
 

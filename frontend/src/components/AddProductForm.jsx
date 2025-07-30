@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import apiService from '../services/apiService'; // Ajouter cet import
+import apiService from '../services/apiService';
 
 const AddProductForm = ({ onClose, onProductAdded, onProductUpdated, editingProduct }) => {
   const [formData, setFormData] = useState({
@@ -100,7 +100,6 @@ const AddProductForm = ({ onClose, onProductAdded, onProductUpdated, editingProd
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validation
     if (!formData.name || !formData.price) {
       alert('Veuillez remplir au moins le nom et le prix');
       return;
@@ -109,7 +108,6 @@ const AddProductForm = ({ onClose, onProductAdded, onProductUpdated, editingProd
     setLoading(true);
 
     try {
-      // Préparer les données du produit
       const productData = {
         name: formData.name,
         description: formData.description,
@@ -120,40 +118,29 @@ const AddProductForm = ({ onClose, onProductAdded, onProductUpdated, editingProd
         images: images.map(img => typeof img === 'string' ? img : img.preview)
       };
 
-      console.log('📤 Envoi du produit à l\'API:', productData);
+      console.log('📤 AddProductForm - Envoi à l\'API:', productData);
 
       if (editingProduct) {
-        // Mode édition - utiliser l'API pour mettre à jour
+        // Mode édition
         const response = await apiService.updateProduct(editingProduct.id, productData);
-        
-        if (response.success) {
-          console.log('✅ Produit mis à jour avec succès');
-          onProductUpdated({
-            ...editingProduct,
-            ...productData,
-            id: editingProduct.id,
-            updatedAt: new Date().toISOString()
-          });
-        } else {
-          throw new Error(response.error || 'Erreur lors de la mise à jour');
-        }
+        console.log('✅ Produit mis à jour:', response);
+        onProductUpdated({ ...editingProduct, ...productData });
       } else {
-        // Mode création - utiliser l'API pour créer
+        // Mode création - APPEL DIRECT à l'API
         const response = await apiService.createProduct(productData);
+        console.log('✅ Réponse API createProduct:', response);
         
         if (response.success && response.data) {
-          console.log('✅ Produit créé avec succès:', response.data);
           onProductAdded(response.data);
         } else {
-          throw new Error(response.error || 'Erreur lors de la création');
+          throw new Error(response.message || 'Erreur lors de la création');
         }
       }
       
-      // Fermer le formulaire
       onClose();
       
     } catch (error) {
-      console.error('❌ Erreur lors de la sauvegarde:', error);
+      console.error('❌ AddProductForm - Erreur:', error);
       alert(`Erreur: ${error.message}`);
     } finally {
       setLoading(false);
