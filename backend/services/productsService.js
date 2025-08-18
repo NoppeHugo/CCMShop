@@ -1,18 +1,11 @@
-const { supabase } = require('../config/supabase');
+const { prisma } = require('../config/supabase');
 
 class ProductsService {
-  
   // Créer un nouveau produit
   async createProduct(productData) {
     try {
-      const { data, error } = await supabase
-        .from('products')
-        .insert([productData])
-        .select()
-        .single();
-
-      if (error) throw error;
-      return { success: true, data };
+      const created = await prisma.product.create({ data: productData });
+      return { success: true, data: created };
     } catch (error) {
       console.error('Erreur création produit:', error);
       return { success: false, error: error.message };
@@ -22,27 +15,18 @@ class ProductsService {
   // Récupérer tous les produits
   async getAllProducts(filters = {}) {
     try {
-      let query = supabase.from('products').select('*');
+      const where = {};
+      if (filters.category) where.category = filters.category;
+      if (filters.featured !== undefined) where.featured = filters.featured === 'true' || filters.featured === true;
 
-      // Appliquer les filtres
-      if (filters.category) {
-        query = query.eq('category', filters.category);
-      }
+      const take = filters.limit ? parseInt(filters.limit) : undefined;
 
-      if (filters.featured !== undefined) {
-        query = query.eq('featured', filters.featured);
-      }
+      const data = await prisma.product.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take
+      });
 
-      if (filters.limit) {
-        query = query.limit(parseInt(filters.limit));
-      }
-
-      // Trier par date de création (plus récent en premier)
-      query = query.order('created_at', { ascending: false });
-
-      const { data, error } = await query;
-
-      if (error) throw error;
       return { success: true, data, count: data.length };
     } catch (error) {
       console.error('Erreur récupération produits:', error);
@@ -53,13 +37,8 @@ class ProductsService {
   // Récupérer un produit par ID
   async getProductById(id) {
     try {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (error) throw error;
+      const data = await prisma.product.findUnique({ where: { id } });
+      if (!data) return { success: false, error: 'Produit non trouvé' };
       return { success: true, data };
     } catch (error) {
       console.error('Erreur récupération produit:', error);
@@ -70,14 +49,7 @@ class ProductsService {
   // Mettre à jour un produit
   async updateProduct(id, updates) {
     try {
-      const { data, error } = await supabase
-        .from('products')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
+      const data = await prisma.product.update({ where: { id }, data: updates });
       return { success: true, data };
     } catch (error) {
       console.error('Erreur mise à jour produit:', error);
@@ -88,12 +60,7 @@ class ProductsService {
   // Supprimer un produit
   async deleteProduct(id) {
     try {
-      const { error } = await supabase
-        .from('products')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      await prisma.product.delete({ where: { id } });
       return { success: true };
     } catch (error) {
       console.error('Erreur suppression produit:', error);
@@ -104,14 +71,7 @@ class ProductsService {
   // Mettre à jour le stock d'un produit
   async updateStock(id, quantity) {
     try {
-      const { data, error } = await supabase
-        .from('products')
-        .update({ stock: quantity })
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
+      const data = await prisma.product.update({ where: { id }, data: { stock: quantity } });
       return { success: true, data };
     } catch (error) {
       console.error('Erreur mise à jour stock:', error);

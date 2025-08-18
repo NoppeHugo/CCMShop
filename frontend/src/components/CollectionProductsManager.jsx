@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { PlusIcon, XMarkIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import collectionsService from '../services/collectionsService';
+import { productsService } from '../services/api';
 
 const CollectionProductsManager = ({ collection, onClose, onUpdate }) => {
   const [allProducts, setAllProducts] = useState([]);
@@ -14,42 +15,42 @@ const CollectionProductsManager = ({ collection, onClose, onUpdate }) => {
   }, [collection]);
 
   const loadProducts = () => {
-    try {
-      // Charger tous les produits
-      const products = JSON.parse(localStorage.getItem('adminProducts') || '[]');
-      setAllProducts(products);
+    (async () => {
+      try {
+        const response = await productsService.getAll();
+        const products = response.data || [];
+        setAllProducts(products);
 
-      // Charger les produits de la collection
-      const collectionProds = collectionsService.getCollectionProducts(collection.id);
-      setCollectionProducts(collectionProds);
+        // Charger les produits de la collection (now returns join rows with product)
+        const fullCollection = await collectionsService.getById(collection.id);
+        const collectionProds = (fullCollection && fullCollection.produits) ? fullCollection.produits.map(cp => cp.product).filter(Boolean) : [];
+        setCollectionProducts(collectionProds);
 
-      // Produits disponibles (non encore dans la collection)
-      const available = products.filter(product => 
-        !collection.produits.includes(product.id)
-      );
-      setAvailableProducts(available);
-      
-      setLoading(false);
-    } catch (error) {
-      console.error('Erreur lors du chargement des produits:', error);
-      setLoading(false);
-    }
+        // Produits disponibles (non encore dans la collection)
+        const available = products.filter(product => !collectionProds.some(p => p.id === product.id));
+        setAvailableProducts(available);
+      } catch (error) {
+        console.error('Erreur lors du chargement des produits:', error);
+      } finally {
+        setLoading(false);
+      }
+    })();
   };
 
-  const addProductToCollection = (productId) => {
+  const addProductToCollection = async (productId) => {
     try {
-      collectionsService.addProduct(collection.id, productId);
-      loadProducts();
+      await collectionsService.addProduct(collection.id, productId);
+      await loadProducts();
       if (onUpdate) onUpdate();
     } catch (error) {
       console.error('Erreur lors de l\'ajout:', error);
     }
   };
 
-  const removeProductFromCollection = (productId) => {
+  const removeProductFromCollection = async (productId) => {
     try {
-      collectionsService.removeProduct(collection.id, productId);
-      loadProducts();
+      await collectionsService.removeProduct(collection.id, productId);
+      await loadProducts();
       if (onUpdate) onUpdate();
     } catch (error) {
       console.error('Erreur lors de la suppression:', error);

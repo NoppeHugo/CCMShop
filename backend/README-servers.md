@@ -10,71 +10,70 @@ node server-http.js
 - ✅ Données hardcodées (4 produits)
 - ✅ Fonctionne avec localStorage admin
 
-### 2. Serveur Supabase (Nouveau)
+### 2. Serveur PostgreSQL/Prisma (Nouveau)
 ```bash
-node server-supabase.js
+node server-prisma.js  # starts the Prisma/Postgres backed server
 ```
-- 🔧 **Configuration Supabase requise**
-- ✅ Base de données PostgreSQL
-- ✅ CRUD complet
+- 🔧 **Configuration PostgreSQL requise (DATABASE_URL)**
+- ✅ Base de données PostgreSQL (utilise Prisma)
+- ✅ CRUD complet via Prisma
 
-### 3. Test Supabase
+### 3. Test DB (Prisma)
 ```bash
-node test-supabase.js
+node test-db.js
 ```
-- 🔍 **Validation de l'intégration**
+- 🔍 **Validation de la connexion PostgreSQL/Prisma**
 - ✅ Test connexion et opérations
 
 ## ⚙️ Configuration Requise
 
 ### Variables d'environnement (.env)
 ```env
-# Configuration actuelle
+# Configuration minimale
 PORT=5000
 
-# Nouvelle configuration Supabase
-SUPABASE_URL=https://[projet].supabase.co
-SUPABASE_SERVICE_ROLE_KEY=eyJ[service-role-key]
+# PostgreSQL (Prisma)
+DATABASE_URL=postgresql://user:password@localhost:5432/jewelry_ecommerce
 ```
 
 ## 🚀 Étapes de Migration
 
-### 1. Configuration Supabase
+### 1. Configuration PostgreSQL (Prisma)
 ```bash
-# Suivre le guide docs/supabase-setup.md
-# 1. Créer projet Supabase
-# 2. Exécuter backend/sql/schema.sql
-# 3. Configurer les variables d'environnement
+# Suivre le guide docs/prisma-setup.md
+# 1. Créer une base PostgreSQL (locale ou gérée)
+# 2. Ajouter DATABASE_URL à .env
+# 3. Exécuter les migrations Prisma: npx prisma migrate dev --name init
 ```
 
 ### 2. Test Local
 ```bash
 cd backend
-node test-supabase.js  # Vérifier la config
-node server-supabase.js  # Démarrer le nouveau serveur
+node test-db.js  # Vérifier la config (Prisma)
+node server-prisma.js  # Démarrer le serveur (Prisma/Postgres)
 ```
 
 ### 3. Déploiement Railway
 ```bash
 # 1. Configurer les variables sur Railway
-# 2. Changer Start Command: node server-supabase.js
+# 2. Changer Start Command: node server-production.js
 # 3. Push du code
 git add .
-git commit -m "feat: Migration vers Supabase"
+git commit -m "feat: Migration vers PostgreSQL/Prisma"
 git push
 ```
 
 ## 🔍 Comparaison des Serveurs
 
-| Fonctionnalité | server-http.js | server-supabase.js |
+| Fonctionnalité | server-http.js | server-prisma.js (Prisma) |
 |---|---|---|
 | **Base de données** | Hardcodé | PostgreSQL |
 | **Nombre de produits** | 4 | Illimité |
 | **Persistence** | Aucune | Complète |
 | **Performance** | Rapide | Rapide + Cache |
 | **Évolutivité** | Limitée | Complète |
-| **Administration** | localStorage | Interface Supabase |
-| **Sauvegardes** | Aucune | Automatiques |
+| **Administration** | localStorage | Database admin tool (pgAdmin, Supabase dashboard, etc.) |
+| **Sauvegardes** | Aucune | Automatiques (selon provider) |
 
 ## 📊 URLs de Test
 
@@ -82,17 +81,16 @@ git push
 - Local: http://localhost:5000/api/products
 - Production: https://ccmshop-production.up.railway.app/api/products
 
-### Serveur Supabase (Nouveau)
+### Serveur PostgreSQL (Nouveau)
 - Local: http://localhost:5000/api/products *(après config)*
 - Production: https://ccmshop-production.up.railway.app/api/products *(après migration)*
 
 ## 🎯 Avantages Migration
 
-✅ **Base de données robuste** PostgreSQL
-✅ **Interface d'administration** Supabase Dashboard
-✅ **API REST automatique** pour toutes les tables
-✅ **Monitoring et analytics** intégrés
-✅ **Sauvegardes automatiques**
-✅ **Évolutivité** sans limite
-✅ **Gestion des utilisateurs** avec Supabase Auth
-✅ **Stockage de fichiers** avec Supabase Storage
+✅ **Base de données robuste**: PostgreSQL
+✅ **Contrôle total** sur les migrations via Prisma
+✅ **Monitoring et observabilité** selon le provider
+✅ **Sauvegardes automatiques (selon provider)**
+✅ **Évolutivité** selon l'infrastructure
+✅ **Gestion des utilisateurs**: implémentée via votre logique d'auth (JWT, tables users)
+✅ **Stockage de fichiers**: recommander S3/Spaces ou le service fourni par le provider

@@ -11,33 +11,37 @@ const Collections = () => {
   const categoryFilter = searchParams.get('category');
 
   useEffect(() => {
-    loadCollections();
+    (async () => { await loadCollections(); })();
   }, []);
 
   useEffect(() => {
-    if (categoryFilter) {
-      const categoryCollections = collectionsService.getCollectionsByCategory(categoryFilter);
-      setFilteredCollections(categoryCollections);
-    } else {
-      setFilteredCollections(collections);
-    }
+    (async () => {
+      if (categoryFilter) {
+        const categoryCollections = await collectionsService.getCollectionsByCategoryAsync(categoryFilter);
+        setFilteredCollections(categoryCollections || []);
+      } else {
+        setFilteredCollections(collections || []);
+      }
+    })();
   }, [collections, categoryFilter]);
 
   const loadCollections = () => {
-    try {
-      // Charger seulement les collections actives
-      const allCollections = collectionsService.getAll();
-      const activeCollections = allCollections.filter(collection => collection.active);
-      setCollections(activeCollections);
-      setLoading(false);
-    } catch (error) {
-      console.error('Erreur lors du chargement des collections:', error);
-      setLoading(false);
-    }
+    return (async () => {
+      try {
+        const allCollections = await collectionsService.getAll();
+        const activeCollections = (allCollections || []).filter(collection => collection.active);
+        setCollections(activeCollections);
+      } catch (error) {
+        console.error('Erreur lors du chargement des collections:', error);
+      } finally {
+        setLoading(false);
+      }
+    })();
   };
 
   const getCollectionProducts = (collection) => {
-    return collectionsService.getCollectionProducts(collection.id);
+    // collection.produits is join rows with .product
+    return (collection.produits || []).map(cp => cp.product).filter(Boolean);
   };
 
   const getCategoryLabel = (category) => {

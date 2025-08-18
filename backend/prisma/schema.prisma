@@ -22,54 +22,57 @@ model Product {
   featured    Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
+
   // Relations
   orderItems  OrderItem[]
-  
+  cartItems   CartItem[]
+  // Back-relation for many-to-many with collections (join table CollectionProduct)
+  collections CollectionProduct[]
+
   @@map("products")
 }
 
 // Modèle pour les commandes
 model Order {
-  id              Int          @id @default(autoincrement())
-  
+  id Int @id @default(autoincrement())
+
   // Informations client
   customerFirstName String
   customerLastName  String
   customerEmail     String
   customerPhone     String?
-  
+
   // Adresse de livraison
-  shippingAddress   Json?
-  
+  shippingAddress Json?
+
   // Totaux et statut
-  total             Decimal      @db.Decimal(10, 2)
-  status            OrderStatus  @default(PENDING)
-  notes             String?
-  
+  total  Decimal     @db.Decimal(10, 2)
+  status OrderStatus @default(PENDING)
+  notes  String?
+
   // Dates
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  items             OrderItem[]
-  
+  items OrderItem[]
+
   @@map("orders")
 }
 
 // Modèle pour les articles de commande
 model OrderItem {
-  id         Int     @id @default(autoincrement())
-  quantity   Int
-  price      Decimal @db.Decimal(10, 2) // Prix unitaire au moment de la commande
-  
+  id       Int     @id @default(autoincrement())
+  quantity Int
+  price    Decimal @db.Decimal(10, 2) // Prix unitaire au moment de la commande
+
   // Relations
-  order      Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  orderId    Int
-  
-  product    Product @relation(fields: [productId], references: [id])
-  productId  Int
-  
+  order   Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId Int
+
+  product   Product @relation(fields: [productId], references: [id])
+  productId Int
+
   @@map("order_items")
 }
 
@@ -81,8 +84,87 @@ model User {
   role      UserRole @default(ADMIN)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   @@map("users")
+}
+
+// Table admin users for authentication
+model AdminUser {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  role      UserRole @default(ADMIN)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sessions AdminSession[]
+
+  @@map("admin_users")
+}
+
+// Table for server-side sessions (DB-backed)
+model AdminSession {
+  id        Int       @id @default(autoincrement())
+  token     String    @unique
+  createdAt DateTime  @default(now())
+  expiresAt DateTime?
+
+  user   AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId Int
+
+  @@map("admin_sessions")
+}
+
+// Collections for products
+model Collection {
+  id               Int                 @id @default(autoincrement())
+  nom              String
+  description      String?
+  imageCouverture  String?
+  imageApercu      String?
+  produits         CollectionProduct[]
+  active           Boolean             @default(true)
+  dateCreation     DateTime            @default(now())
+  dateModification DateTime?
+
+  @@map("collections")
+}
+
+// Join table for many-to-many between Collection and Product
+model CollectionProduct {
+  id           Int        @id @default(autoincrement())
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  collectionId Int
+  product      Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId    Int
+
+  @@unique([collectionId, productId])
+  @@map("collection_products")
+}
+
+// Server-side cart models
+model Cart {
+  id        Int        @id @default(autoincrement())
+  token     String     @unique
+  items     CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@map("carts")
+}
+
+model CartItem {
+  id       Int @id @default(autoincrement())
+  quantity Int
+
+  cart   Cart @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  cartId Int
+
+  product   Product @relation(fields: [productId], references: [id])
+  productId Int
+
+  @@unique([cartId, productId])
+  @@map("cart_items")
 }
 
 // Énumérations

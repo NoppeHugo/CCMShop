@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { stockService } from '../services/stockService';
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 // Actions pour le panier
 const CART_ACTIONS = {
   ADD_ITEM: 'ADD_ITEM',
@@ -100,20 +102,59 @@ export const useCart = () => {
 export const CartProvider = ({ children }) => {
   const [state, dispatch] = useReducer(cartReducer, initialCartState);
 
-  // Charger le panier depuis le localStorage au démarrage
-  useEffect(() => {
-    const savedCart = localStorage.getItem('jewelry-cart');
-    if (savedCart) {
-      try {
-        const parsedCart = JSON.parse(savedCart);
-        dispatch({
-          type: CART_ACTIONS.LOAD_CART,
-          payload: parsedCart
-        });
-      } catch (error) {
-        console.error('Erreur lors du chargement du panier:', error);
-      }
+  // Persist cart in a cookie (avoid localStorage). Cookie is used only to keep cart across refreshes.
+  const COOKIE_NAME = 'jewelry_cart';
+
+  const readCartFromCookie = () => {
+    try {
+      const match = document.cookie.split('; ').find(row => row.startsWith(COOKIE_NAME + '='));
+      if (!match) return null;
+      const value = decodeURIComponent(match.split('=')[1] || '');
+      const parsed = JSON.parse(value);
+      return parsed;
+    } catch (err) {
+      console.warn('Impossible de lire le cookie du panier:', err);
+      return null;
     }
+  };
+
+  const saveCartToCookie = (cartState) => {
+    try {
+      const serialized = JSON.stringify(cartState);
+      // Guard: avoid huge cookies. If too large, skip saving.
+      if (serialized.length > 3800) {
+        console.warn('Cart too large to store in cookie; skipping persistence');
+        return;
+      }
+      const maxAge = 60 * 60 * 24 * 7; // 7 days
+      document.cookie = `${COOKIE_NAME}=${encodeURIComponent(serialized)}; Path=/; Max-Age=${maxAge}; SameSite=Lax`;
+    } catch (err) {
+      console.warn('Impossible de sauvegarder le panier dans le cookie:', err);
+    }
+  };
+
+  // Charger le panier depuis le cookie au démarrage
+  useEffect(() => {
+    (async () => {
+      try {
+        // Try to read server-side cart
+        const res = await fetch(`${API_BASE}/api/cart`, { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.data && data.data.items) {
+            // map items shape
+            const items = data.data.items.map(i => ({ id: i.productId, name: i.product.name || i.productId, price: i.product.price, quantity: i.quantity }));
+            dispatch({ type: CART_ACTIONS.LOAD_CART, payload: { items } });
+            return;
+          }
+        }
+      } catch (err) {
+        // ignore and fallback to cookie
+      }
+
+      const saved = readCartFromCookie();
+      if (saved && saved.items) dispatch({ type: CART_ACTIONS.LOAD_CART, payload: saved });
+    })();
   }, []);
 
   // Synchroniser le stock au démarrage
@@ -121,9 +162,23 @@ export const CartProvider = ({ children }) => {
     stockService.syncWithProducts();
   }, []);
 
-  // Sauvegarder le panier dans le localStorage à chaque changement
+  // Persist cart to server on changes; fallback to cookie if backend unavailable
   useEffect(() => {
-    localStorage.setItem('jewelry-cart', JSON.stringify(state));
+    (async () => {
+      try {
+        const payload = { items: state.items.map(i => ({ productId: i.id, quantity: i.quantity })) };
+        const res = await fetch(`${API_BASE}/api/cart`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error('cart save failed');
+      } catch (err) {
+        // fallback: cookie persistence
+        saveCartToCookie(state);
+      }
+    })();
   }, [state]);
 
   // Fonctions utilitaires avec gestion de stock
@@ -135,30 +190,14 @@ export const CartProvider = ({ children }) => {
       return false; // Échec de l'ajout
     }
 
-    // Réserver le stock
-    const stockReserved = stockService.reserveStock(product.id, quantity);
-    
-    if (stockReserved) {
-      dispatch({
-        type: CART_ACTIONS.ADD_ITEM,
-        payload: { product, quantity }
-      });
-      return true; // Succès de l'ajout
-    }
-    return false; // Échec de l'ajout
+  // Do not reserve stock client-side; only check availability for UX
+  dispatch({ type: CART_ACTIONS.ADD_ITEM, payload: { product, quantity } });
+  return true;
   };
 
   const removeFromCart = (productId) => {
-    // Trouver l'article dans le panier pour libérer le stock
-    const itemToRemove = state.items.find(item => item.id === productId);
-    if (itemToRemove) {
-      stockService.releaseStock(productId, itemToRemove.quantity);
-    }
-    
-    dispatch({
-      type: CART_ACTIONS.REMOVE_ITEM,
-      payload: { productId }
-    });
+  // Removing from cart does not release DB stock — reservations are server-side on order
+  dispatch({ type: CART_ACTIONS.REMOVE_ITEM, payload: { productId } });
   };
 
   const updateQuantity = (productId, newQuantity) => {
@@ -174,11 +213,10 @@ export const CartProvider = ({ children }) => {
         console.warn(`Stock insuffisant pour augmenter la quantité. Disponible: ${availableStock}`);
         return false;
       }
-      // Réserver le stock supplémentaire
-      stockService.reserveStock(productId, quantityDifference);
+  // Do not reserve stock client-side; rely on DB at confirmation
     } else if (quantityDifference < 0) {
       // Diminuer la quantité - libérer le stock
-      stockService.releaseStock(productId, Math.abs(quantityDifference));
+  // No-op: no client-side reservation to release
     }
 
     dispatch({
@@ -189,9 +227,15 @@ export const CartProvider = ({ children }) => {
   };
 
   const clearCart = () => {
-    // Libérer tout le stock réservé
-    stockService.cancelReservation(state.items);
+    // Clear local cart and server-side cart
     dispatch({ type: CART_ACTIONS.CLEAR_CART });
+    (async () => {
+      try {
+        await fetch(`${API_BASE}/api/cart`, { method: 'DELETE', credentials: 'include' });
+      } catch (err) {
+        // ignore
+      }
+    })();
   };
 
   // Fonction pour finaliser la commande
@@ -220,20 +264,34 @@ export const CartProvider = ({ children }) => {
       ]
     };
 
-    // Sauvegarder la commande
-    try {
-      const existingOrders = JSON.parse(localStorage.getItem('jewelry-orders') || '[]');
-      const updatedOrders = [...existingOrders, order];
-      localStorage.setItem('jewelry-orders', JSON.stringify(updatedOrders));
-      console.log('Commande sauvegardée:', order);
-    } catch (error) {
-      console.error('Erreur lors de la sauvegarde de la commande:', error);
-    }
+    // Send order to backend (if available). If backend fails, keep order in memory only.
+    (async () => {
+      try {
+        // Send items with productId to match backend expectation
+        const payloadItems = order.items.map(i => ({ productId: i.id, quantity: i.quantity, price: i.price }));
+        const res = await fetch(`${API_BASE}/api/orders`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ customerInfo, items: payloadItems, shippingAddress: null, notes: null })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          console.log('Commande confirmée par le backend:', data);
+        } else {
+          console.warn('Échec création commande backend:', res.status);
+          throw new Error('order failed');
+        }
+      } catch (err) {
+        console.warn('Backend indisponible, commande en mémoire:', err);
+        // If backend failed, do not decrement stock (items were reserved locally). We keep behavior: confirmSale still called.
+      } finally {
+        // Confirmer la vente dans le stockService et vider le panier localement
+        stockService.confirmSale(state.items);
+        dispatch({ type: CART_ACTIONS.CLEAR_CART });
+      }
+    })();
 
-    // Confirmer la vente dans le stockService
-    stockService.confirmSale(state.items);
-    dispatch({ type: CART_ACTIONS.CLEAR_CART });
-    
     return order;
   };
 

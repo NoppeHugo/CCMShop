@@ -6,26 +6,34 @@ const AdminLogin = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-  // Mot de passe simple pour votre mère (à changer plus tard)
-  const ADMIN_PASSWORD = 'ColliersMaison2025';
-
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
-    // Simulation d'une vérification
-    setTimeout(() => {
-      if (password === ADMIN_PASSWORD) {
-        // Stockage simple de la session
-        localStorage.setItem('isAdminConnected', 'true');
+    try {
+      // Appel au backend pour authentifier; serveur doit renvoyer un cookie HttpOnly si OK
+      const res = await fetch(`${API_BASE}/api/auth/login`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password })
+      });
+
+      if (res.ok) {
         navigate('/admin/dashboard');
       } else {
-        setError('Mot de passe incorrect');
+        const body = await res.json().catch(() => ({}));
+        setError(body.error || 'Mot de passe incorrect');
       }
-      setLoading(false);
-    }, 1000);
+    } catch (err) {
+      console.error('Erreur connexion admin:', err);
+      setError('Erreur réseau, réessayez');
+    }
+
+    setLoading(false);
   };
 
   return (

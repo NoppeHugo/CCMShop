@@ -2,32 +2,36 @@ require('dotenv').config({ path: __dirname + '/backend/.env' });
 const http = require('http');
 const url = require('url');
 
-// Test de la configuration Supabase
-let useSupabase = false;
-let supabaseConfig = null;
+// Test de la configuration PostgreSQL/Prisma
+let useDatabase = false;
 let productsService = null;
 
 try {
-  if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (process.env.DATABASE_URL) {
     const { testConnection } = require('./backend/config/supabase');
     productsService = require('./backend/services/productsService');
-    
+
     // Test connexion au démarrage
-    testConnection().then(() => {
-      console.log('✅ Supabase activé');
-      useSupabase = true;
+    testConnection().then(ok => {
+      if (ok) {
+        console.log('✅ PostgreSQL/Prisma activé');
+        useDatabase = true;
+      } else {
+        console.log('❌ Connexion DB échouée, utilisation données hardcodées');
+        useDatabase = false;
+      }
     }).catch(error => {
-      console.log('❌ Supabase échoué, utilisation données hardcodées');
-      useSupabase = false;
+      console.log('❌ Erreur test DB, utilisation données hardcodées');
+      useDatabase = false;
     });
   } else {
-    console.log('⚠️ Variables Supabase manquantes, utilisation données hardcodées');
+    console.log('⚠️ DATABASE_URL manquante, utilisation données hardcodées');
   }
 } catch (error) {
-  console.log('⚠️ Configuration Supabase échouée, utilisation données hardcodées');
+  console.log('⚠️ Test DB échoué, utilisation données hardcodées');
 }
 
-// Données de fallback (si Supabase non disponible)
+// Données de fallback (si la base de données n'est pas disponible)
 const fallbackProducts = [
   {
     id: 1,
@@ -101,7 +105,7 @@ const server = http.createServer(async (req, res) => {
   const path = parsedUrl.pathname;
   const query = parsedUrl.query;
 
-  console.log(`${req.method} ${path} (${useSupabase ? 'Supabase' : 'Fallback'})`);
+  console.log(`${req.method} ${path} (${useDatabase ? 'Database' : 'Fallback'})`);
 
   // Route de base
   if (path === '/' && req.method === 'GET') {
@@ -110,11 +114,10 @@ const server = http.createServer(async (req, res) => {
       message: 'API E-commerce Bijoux - Configuration Hybride ✨',
       version: '2.1.0',
       status: 'active',
-      database: useSupabase ? 'Supabase PostgreSQL' : 'Fallback (hardcoded)',
-      supabaseStatus: useSupabase ? 'Connecté' : 'Non configuré ou erreur',
+      database: useDatabase ? 'PostgreSQL (Prisma)' : 'Fallback (hardcoded)',
+      dbStatus: useDatabase ? 'Connecté' : 'Non configuré ou erreur',
       variables: {
-        SUPABASE_URL: process.env.SUPABASE_URL ? 'Configuré' : 'Manquant',
-        SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY ? 'Configuré' : 'Manquant'
+        DATABASE_URL: process.env.DATABASE_URL ? 'Configuré' : 'Manquant'
       },
       endpoints: [
         'GET / - Cette page avec diagnostic',
@@ -130,25 +133,25 @@ const server = http.createServer(async (req, res) => {
     try {
       let products = [];
       
-      if (useSupabase && productsService) {
-        // Utiliser Supabase
-        const result = await productsService.getAllProducts(query);
-        if (result.success) {
-          products = result.data;
-        } else {
-          console.log('Erreur Supabase, fallback vers données hardcodées');
-          products = fallbackProducts;
-        }
-      } else {
-        // Utiliser données hardcodées
-        products = fallbackProducts;
-      }
+          if (useDatabase && productsService) {
+            // Utiliser la base PostgreSQL via Prisma
+            const result = await productsService.getAllProducts(query);
+            if (result.success) {
+              products = result.data;
+            } else {
+              console.log('Erreur DB, fallback vers données hardcodées');
+              products = fallbackProducts;
+            }
+          } else {
+            // Utiliser données hardcodées
+            products = fallbackProducts;
+          }
       
       res.writeHead(200);
       res.end(JSON.stringify({
         success: true,
         count: products.length,
-        source: useSupabase ? 'supabase' : 'fallback',
+    source: useDatabase ? 'database' : 'fallback',
         data: products
       }));
     } catch (error) {
@@ -176,7 +179,7 @@ const PORT = process.env.PORT || 5000;
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Serveur hybride démarré sur le port ${PORT}`);
   console.log(`📍 URL: http://0.0.0.0:${PORT}`);
-  console.log(`🗄️ Base de données: ${useSupabase ? 'Supabase PostgreSQL' : 'Fallback hardcoded'}`);
+  console.log(`🗄️ Base de données: ${useDatabase ? 'PostgreSQL (Prisma)' : 'Fallback hardcoded'}`);
   console.log(`📊 Test: http://0.0.0.0:${PORT}/api/products`);
-  console.log(`🔧 Variables: SUPABASE_URL=${process.env.SUPABASE_URL ? 'OK' : 'MISSING'}, KEY=${process.env.SUPABASE_SERVICE_ROLE_KEY ? 'OK' : 'MISSING'}`);
+  console.log(`🔧 Variables: DATABASE_URL=${process.env.DATABASE_URL ? 'OK' : 'MISSING'}`);
 });

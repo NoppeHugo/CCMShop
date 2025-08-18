@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import formatPrice from '../utils/formatPrice';
 import { useCart } from '../context/CartContext';
+import placeholderImg from '../assets/ccm.png'; // <-- ajouté
 
-const ProductCard = ({ product, onAddToCart }) => {
+function ProductCard({ product }) {
   const [isAdding, setIsAdding] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
   const [stockError, setStockError] = useState('');
@@ -17,11 +19,23 @@ const ProductCard = ({ product, onAddToCart }) => {
     id = 0,
     name = 'Produit sans nom',
     description = 'Description non disponible',
-    price = 0,
+    price: rawPrice = 0,
     images = [],
     category = 'bijou',
     featured = false
   } = product;
+
+  // safe price conversion (remplace l'ancien usage direct de product.price.toFixed(...))
+  let price = 0;
+  if (typeof rawPrice === 'string') {
+    // supporte "12.34" ou "12,34"
+    price = parseFloat(rawPrice.replace(',', '.'));
+  } else if (typeof rawPrice === 'number') {
+    price = rawPrice;
+  } else {
+    price = Number(rawPrice);
+  }
+  if (!Number.isFinite(price)) price = 0;
 
   const handleAddToCart = async () => {
     setIsAdding(true);
@@ -64,7 +78,9 @@ const ProductCard = ({ product, onAddToCart }) => {
             alt={name}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             onError={(e) => {
-              e.target.src = `https://via.placeholder.com/400x400/F7E7CE/D4AF37?text=${encodeURIComponent(name)}`;
+              // éviter boucle d'erreur : supprimer le handler avant de remplacer la source
+              e.currentTarget.onerror = null;
+              e.currentTarget.src = placeholderImg;
             }}
           />
         ) : (
@@ -107,7 +123,7 @@ const ProductCard = ({ product, onAddToCart }) => {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-baseline space-x-2">
             <span className="text-xl font-semibold text-neutral-900">
-              {(price || 0).toFixed(2)}€
+              {formatPrice(price)}€
             </span>
           </div>
           

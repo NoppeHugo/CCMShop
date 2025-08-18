@@ -64,22 +64,13 @@ class ImageCompressionService {
 
   // Afficher les statistiques de stockage
   static logStorageStats() {
-    const sizeBytes = this.getLocalStorageSize();
-    const sizeMB = (sizeBytes / (1024 * 1024)).toFixed(2);
-    const maxSizeMB = 5; // Limite approximative du localStorage
-    const usagePercent = ((sizeBytes / (maxSizeMB * 1024 * 1024)) * 100).toFixed(1);
-    
-    console.log(`📊 LocalStorage: ${sizeMB}MB utilisés (~${usagePercent}% de ${maxSizeMB}MB)`);
-    
-    // Détail par clé
-    const keys = ['jewelry_collections', 'jewelry_products', 'jewelry_stock', 'jewelry_sales'];
-    keys.forEach(key => {
-      const item = localStorage.getItem(key);
-      if (item) {
-        const keySize = (item.length / 1024).toFixed(1);
-        console.log(`  ${key}: ${keySize}KB`);
-      }
-    });
+  // Removed localStorage-based stats; fallback to counting bytes of known keys if available
+  const sizeBytes = this.getLocalStorageSize();
+  const sizeMB = Number((sizeBytes / (1024 * 1024)).toFixed(2));
+  const maxSizeMB = 5;
+  const usagePercent = Number(((sizeBytes / (maxSizeMB * 1024 * 1024)) * 100).toFixed(1));
+
+  console.log(`📊 LocalStorage (approx): ${sizeMB}MB utilisés (~${usagePercent}% de ${maxSizeMB}MB)`);
   }
 }
 

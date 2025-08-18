@@ -13,11 +13,11 @@ const testColors = {
 async function runTests() {
   console.log(`${testColors.BLUE}🚀 Test de l'intégration PostgreSQL/Prisma${testColors.RESET}\n`);
   
-  // Test 1: Connexion Supabase
+  // Test 1: Connexion PostgreSQL/Prisma
   console.log(`${testColors.YELLOW}Test 1: Connexion PostgreSQL/Prisma${testColors.RESET}`);
-    try {
-      await testConnection();
-      console.log(`${testColors.GREEN}✅ Connexion PostgreSQL/Prisma réussie${testColors.RESET}\n`);
+  try {
+    await testConnection();
+    console.log(`${testColors.GREEN}✅ Connexion PostgreSQL/Prisma réussie${testColors.RESET}\n`);
   } catch (error) {
     console.log(`${testColors.RED}❌ Erreur de connexion: ${error.message}${testColors.RESET}\n`);
     return;

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import formatPrice from '../utils/formatPrice';
 
 const SalesManagement = ({ onClose }) => {
   const [orders, setOrders] = useState([]);
@@ -26,19 +27,23 @@ const SalesManagement = ({ onClose }) => {
 
   // Charger les commandes depuis localStorage
   useEffect(() => {
-    const loadOrders = () => {
+    const loadOrders = async () => {
       try {
         setLoading(true);
-        const savedOrders = JSON.parse(localStorage.getItem('jewelry-orders') || '[]');
-        
-        // Trier par date de création (plus récent en premier)
-        const sortedOrders = savedOrders.sort((a, b) => 
-          new Date(b.createdAt) - new Date(a.createdAt)
-        );
-        
-        setOrders(sortedOrders);
+        const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+        const res = await fetch(`${API_BASE}/api/orders`, { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          const fetched = Array.isArray(data.data) ? data.data : [];
+          const sortedOrders = fetched.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+          setOrders(sortedOrders);
+        } else {
+          // fallback: empty list
+          setOrders([]);
+        }
       } catch (error) {
         console.error('Erreur lors du chargement des commandes:', error);
+        setOrders([]);
       } finally {
         setLoading(false);
       }
@@ -71,7 +76,7 @@ const SalesManagement = ({ onClose }) => {
     completed: orders.filter(o => ['delivered', 'collected'].includes(o.status)).length,
     totalRevenue: orders
       .filter(o => ['delivered', 'collected'].includes(o.status))
-      .reduce((sum, order) => sum + order.total, 0)
+      .reduce((sum, order) => sum + (typeof order.total === 'number' ? order.total : parseFloat(order.total || 0)), 0)
   };
 
   // Mettre à jour le statut d'une commande
@@ -95,7 +100,23 @@ const SalesManagement = ({ onClose }) => {
     );
     
     setOrders(updatedOrders);
-    localStorage.setItem('jewelry-orders', JSON.stringify(updatedOrders));
+    // Persist status to backend if possible
+    (async () => {
+      try {
+        const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+        const res = await fetch(`${API_BASE}/api/orders/${orderId}/status`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: newStatus })
+        });
+        if (!res.ok) {
+          console.warn('Échec persistance statut commande:', res.status);
+        }
+      } catch (err) {
+        console.warn('Backend indisponible pour persister le statut:', err);
+      }
+    })();
     
     if (selectedOrder && selectedOrder.id === orderId) {
       setSelectedOrder(updatedOrders.find(o => o.id === orderId));
@@ -156,7 +177,7 @@ const SalesManagement = ({ onClose }) => {
               <div className="text-sm text-green-600">Terminées</div>
             </div>
             <div className="bg-primary-50 rounded-lg p-4">
-              <div className="text-2xl font-semibold text-primary-700">{stats.totalRevenue.toFixed(2)}€</div>
+              <div className="text-2xl font-semibold text-primary-700">{formatPrice(stats.totalRevenue)}€</div>
               <div className="text-sm text-primary-600">Chiffre d'affaires</div>
             </div>
           </div>
@@ -306,14 +327,14 @@ const OrderCard = ({ order, orderStatuses, deliveryTypes, formatDate, isSelected
         </span>
       </div>
       
-      <div className="space-y-2">
+        <div className="space-y-2">
         <div className="flex justify-between text-sm">
           <span className="text-neutral-600">Type:</span>
           <span className="font-medium">{deliveryTypes[order.deliveryType]}</span>
         </div>
         <div className="flex justify-between text-sm">
           <span className="text-neutral-600">Montant:</span>
-          <span className="font-medium text-primary-600">{order.total.toFixed(2)}€</span>
+          <span className="font-medium text-primary-600">{formatPrice(order.total)}€</span>
         </div>
         <div className="flex justify-between text-sm">
           <span className="text-neutral-600">Date:</span>
@@ -417,12 +438,12 @@ const OrderDetails = ({ order, orderStatuses, deliveryTypes, formatDate, updateO
                 <p className="font-medium">{item.name}</p>
                 <p className="text-sm text-neutral-600">Quantité: {item.quantity}</p>
               </div>
-              <p className="font-medium text-primary-600">{(item.price * item.quantity).toFixed(2)}€</p>
+              <p className="font-medium text-primary-600">{formatPrice(item.price * item.quantity)}€</p>
             </div>
           ))}
           <div className="flex justify-between items-center p-3 bg-primary-50 border border-primary-200 rounded-lg">
             <span className="font-semibold">Total</span>
-            <span className="font-semibold text-primary-600">{order.total.toFixed(2)}€</span>
+            <span className="font-semibold text-primary-600">{formatPrice(order.total)}€</span>
           </div>
         </div>
       </div>

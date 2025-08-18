@@ -100,21 +100,14 @@ const Footer = () => {
               <span className="text-sm text-neutral-500">Suivez-nous</span>
               <div className="flex space-x-4">
                 <a
-                  href="#"
+                  href="https://www.facebook.com/collierscolliers.maison"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="w-9 h-9 bg-neutral-800 rounded-full flex items-center justify-center hover:bg-primary-600 transition-colors duration-200"
                   aria-label="Facebook"
                 >
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                  </svg>
-                </a>
-                <a
-                  href="#"
-                  className="w-9 h-9 bg-neutral-800 rounded-full flex items-center justify-center hover:bg-primary-600 transition-colors duration-200"
-                  aria-label="Instagram"
-                >
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 6.62 5.367 11.987 11.988 11.987 6.62 0 11.987-5.367 11.987-11.987C24.014 5.367 18.637.001 12.017.001zM8.449 16.988c-1.297 0-2.448-.596-3.205-1.534l1.714-1.388c.394.622 1.101 1.042 1.906 1.042 1.242 0 2.25-1.008 2.25-2.25s-1.008-2.25-2.25-2.25c-.805 0-1.512.42-1.906 1.042L5.244 10.262c.757-.938 1.908-1.534 3.205-1.534 2.206 0 3.994 1.788 3.994 3.994s-1.788 3.994-3.994 3.994z"/>
                   </svg>
                 </a>
               </div>

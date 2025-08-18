@@ -3,18 +3,19 @@ import { productsService } from './api';
 // Service de gestion du stock
 class StockService {
   constructor() {
-    this.stockData = this.loadStockFromStorage();
+  // Keep stock in memory; do not persist to localStorage per requirements.
+  this.stockData = {};
   }
 
   // Charger les données de stock depuis localStorage
   loadStockFromStorage() {
-    const saved = localStorage.getItem('jewelry-stock');
-    return saved ? JSON.parse(saved) : {};
+  // deprecated: localStorage persistence removed
+  return {};
   }
 
   // Sauvegarder les données de stock
   saveStockToStorage() {
-    localStorage.setItem('jewelry-stock', JSON.stringify(this.stockData));
+  // deprecated: no-op
   }
 
   // Obtenir le stock disponible pour un produit
@@ -70,7 +71,7 @@ class StockService {
   // Fonction de debug pour afficher l'état du stock
   debugStock() {
     console.log('=== ÉTAT DU STOCK ===');
-    console.log('Données localStorage:', this.stockData);
+  console.log('Données en mémoire:', this.stockData);
     console.log('=====================');
     return this.stockData;
   }
@@ -193,14 +194,25 @@ class StockService {
   // Mettre à jour le stock dans les données produit admin
   updateProductInAdminStorage(productId, newStock) {
     try {
-      const adminProducts = JSON.parse(localStorage.getItem('adminProducts') || '[]');
-      const productIndex = adminProducts.findIndex(p => p.id === productId);
-      
-      if (productIndex !== -1) {
-        adminProducts[productIndex].stock = newStock;
-        localStorage.setItem('adminProducts', JSON.stringify(adminProducts));
-        console.log(`Stock mis à jour dans adminProducts pour le produit ${productId}: ${newStock}`);
-      }
+      // Tenter une mise à jour côté backend; ne pas écrire dans localStorage en production
+      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      (async () => {
+        try {
+          const res = await fetch(`${API_BASE}/api/products/${productId}`, {
+            method: 'PUT',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ stock: newStock })
+          });
+          if (res.ok) {
+            console.log(`Stock mis à jour dans la base pour le produit ${productId}: ${newStock}`);
+          } else {
+            console.error(`Échec mise à jour stock backend: ${res.status} ${res.statusText}`);
+          }
+        } catch (err) {
+          console.error('Erreur mise à jour stock via API:', err);
+        }
+      })();
     } catch (error) {
       console.error('Erreur lors de la mise à jour du produit admin:', error);
     }

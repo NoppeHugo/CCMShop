@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import formatPrice from '../utils/formatPrice';
 import { useCart } from '../context/CartContext';
 import { Link } from 'react-router-dom';
 
@@ -171,11 +172,11 @@ const Cart = () => {
                             {/* Prix */}
                             <div className="text-right">
                               <p className="font-semibold text-neutral-900">
-                                {(item.price && item.quantity) ? (item.price * item.quantity).toFixed(2) : '0.00'}€
+                                {formatPrice(item.price * item.quantity)}€
                               </p>
                               {item.quantity > 1 && (
                                 <p className="text-sm text-neutral-500">
-                                  {item.price ? item.price.toFixed(2) : '0.00'}€ × {item.quantity}
+                                  {formatPrice(item.price)}€ × {item.quantity}
                                 </p>
                               )}
                             </div>
@@ -196,9 +197,9 @@ const Cart = () => {
                 </h2>
 
                 <div className="space-y-4 mb-6">
-                  <div className="flex justify-between text-neutral-600">
+                    <div className="flex justify-between text-neutral-600">
                     <span>Sous-total ({cartItemsCount} {cartItemsCount > 1 ? 'articles' : 'article'})</span>
-                    <span>{cartTotal.toFixed(2)}€</span>
+                    <span>{formatPrice(cartTotal)}€</span>
                   </div>
                   
                   <div className="flex justify-between text-neutral-600">
@@ -209,7 +210,7 @@ const Cart = () => {
                   <div className="border-t border-neutral-200 pt-4">
                     <div className="flex justify-between items-center">
                       <span className="text-lg font-medium text-neutral-900">Total</span>
-                      <span className="text-xl font-semibold text-neutral-900">{cartTotal.toFixed(2)}€</span>
+                      <span className="text-xl font-semibold text-neutral-900">{formatPrice(cartTotal)}€</span>
                     </div>
                   </div>
                 </div>

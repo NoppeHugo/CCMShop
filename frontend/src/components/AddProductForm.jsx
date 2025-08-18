@@ -106,33 +106,59 @@ const AddProductForm = ({ onClose, onProductAdded, onProductUpdated, editingProd
       return;
     }
 
-    // Simulation de sauvegarde
-    setTimeout(() => {
-      if (editingProduct) {
-        // Mode édition - mettre à jour le produit existant
-        const updatedProduct = {
-          ...editingProduct,
-          ...formData,
-          price: parseFloat(formData.price),
-          stock: parseInt(formData.stock),
-          images: images.map(img => typeof img === 'string' ? img : img.preview),
-          updatedAt: new Date().toISOString()
-        };
-        onProductUpdated(updatedProduct);
-      } else {
-        // Mode création - créer un nouveau produit
-        const newProduct = {
-          id: Date.now(),
-          ...formData,
-          price: parseFloat(formData.price),
-          stock: parseInt(formData.stock),
-          images: images.map(img => typeof img === 'string' ? img : img.preview),
-          createdAt: new Date().toISOString()
-        };
-        onProductAdded(newProduct);
+    // Appel réel à l'API backend pour créer/mettre à jour
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+  (async () => {
+      try {
+        if (editingProduct) {
+          // Édition : appeler endpoint PUT si nécessaire (non implémenté ici)
+          const updatedProduct = {
+            ...editingProduct,
+            ...formData,
+            price: parseFloat(formData.price),
+            stock: parseInt(formData.stock),
+            images: images.map(img => typeof img === 'string' ? img : img.preview),
+            updatedAt: new Date().toISOString()
+          };
+          // Appeler callback local pour l'instant
+          onProductUpdated(updatedProduct);
+        } else {
+          // Création : POST vers /api/products
+          const payload = {
+            ...formData,
+            price: parseFloat(formData.price),
+            stock: parseInt(formData.stock),
+            images: images.map(img => typeof img === 'string' ? img : img.preview)
+          };
+
+          const res = await fetch(`${API_BASE}/api/products`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || 'Erreur création produit');
+          }
+
+          const body = await res.json();
+          const created = body.data || null;
+          if (created) {
+            onProductAdded(created);
+          } else {
+            throw new Error('Réponse invalide du serveur');
+          }
+        }
+      } catch (err) {
+        console.error('Erreur création/édition produit :', err);
+        alert('Erreur lors de la sauvegarde du produit : ' + err.message);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
-    }, 1000);
+    })();
   };
 
   return (

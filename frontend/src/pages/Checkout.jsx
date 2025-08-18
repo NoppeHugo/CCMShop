@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useCart } from '../context/CartContext';
 import { useNavigate } from 'react-router-dom';
+import formatPrice from '../utils/formatPrice';
 
 const Checkout = () => {
   const { cartItems, cartTotal, cartItemsCount, confirmOrder } = useCart();
@@ -25,7 +26,7 @@ const Checkout = () => {
     
     // Validation
     accepteConditions: false,
-    newsletter: false
+    
   });
 
   const [errors, setErrors] = useState({});
@@ -103,7 +104,15 @@ const Checkout = () => {
       
       // Créer la commande avec les informations
       const deliveryType = formData.modeCommande === 'livraison' ? 'delivery' : 'pickup';
-      const orderData = confirmOrder(formData, deliveryType);
+      // Map local form fields (FR) to backend expected shape (firstName/lastName/email/phone)
+      const customerInfo = {
+        firstName: formData.prenom,
+        lastName: formData.nom,
+        email: formData.email,
+        phone: formData.telephone
+      };
+
+      const orderData = confirmOrder(customerInfo, deliveryType);
       setOrderSubmitted(true);
       
       console.log('Commande créée:', orderData);
@@ -426,18 +435,7 @@ const Checkout = () => {
                       </div>
                     </label>
                     
-                    <label className="flex items-start space-x-3 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        name="newsletter"
-                        checked={formData.newsletter}
-                        onChange={handleInputChange}
-                        className="mt-0.5 text-primary-600 focus:ring-primary-500"
-                      />
-                      <span className="text-sm text-neutral-900">
-                        Je souhaite recevoir la newsletter pour être informé(e) des nouveautés
-                      </span>
-                    </label>
+                    {/* Newsletter checkbox removed per request */}
                   </div>
                 </div>
 
@@ -479,11 +477,11 @@ const Checkout = () => {
                           {item.name}
                         </p>
                         <p className="text-xs text-neutral-500">
-                          {item.quantity} × {item.price.toFixed(2)}€
+                            {item.quantity} × {formatPrice(item.price)}€
                         </p>
                       </div>
                       <p className="text-sm font-semibold text-neutral-900">
-                        {(item.price * item.quantity).toFixed(2)}€
+                        {formatPrice(item.price * item.quantity)}€
                       </p>
                     </div>
                   ))}
@@ -493,7 +491,7 @@ const Checkout = () => {
                 <div className="space-y-2 mb-6 pt-4 border-t border-neutral-200">
                   <div className="flex justify-between text-neutral-600">
                     <span>Sous-total</span>
-                    <span>{cartTotal.toFixed(2)}€</span>
+                    <span>{formatPrice(cartTotal)}€</span>
                   </div>
                   <div className="flex justify-between text-neutral-600">
                     <span>Livraison</span>
@@ -502,7 +500,7 @@ const Checkout = () => {
                   <div className="flex justify-between items-center pt-2 border-t border-neutral-200">
                     <span className="font-medium text-neutral-900">Total</span>
                     <span className="text-xl font-semibold text-neutral-900">
-                      {cartTotal.toFixed(2)}€
+                      {formatPrice(cartTotal)}€
                     </span>
                   </div>
                 </div>

@@ -25,13 +25,16 @@ const CollectionsManagement = () => {
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
-    loadCollections();
+    (async () => { await loadCollections(); })();
   }, []);
 
   const loadCollections = () => {
-    const collectionsData = collectionsService.getAll();
-    setCollections(collectionsData);
-    setStats(collectionsService.getStats());
+    return (async () => {
+      const collectionsData = await collectionsService.getAll();
+      setCollections(collectionsData || []);
+      const s = await collectionsService.getStats();
+      setStats(s || { total: 0, active: 0, totalProducts: 0 });
+    })();
   };
 
   const resetForm = () => {
@@ -142,14 +145,15 @@ const CollectionsManagement = () => {
     }
 
     try {
-      if (editingCollection) {
-        collectionsService.update(editingCollection.id, formData);
-      } else {
-        collectionsService.create(formData);
-      }
-      
-      loadCollections();
-      closeModal();
+      (async () => {
+        if (editingCollection) {
+          await collectionsService.update(editingCollection.id, formData);
+        } else {
+          await collectionsService.create(formData);
+        }
+        await loadCollections();
+        closeModal();
+      })();
     } catch (error) {
       console.error('Erreur lors de la sauvegarde:', error);
       setErrors({ submit: 'Erreur lors de la sauvegarde' });
@@ -159,8 +163,7 @@ const CollectionsManagement = () => {
   const handleDelete = (collection) => {
     if (window.confirm(`Êtes-vous sûr de vouloir supprimer la collection "${collection.nom}" ?`)) {
       try {
-        collectionsService.delete(collection.id);
-        loadCollections();
+  (async () => { await collectionsService.delete(collection.id); await loadCollections(); })();
       } catch (error) {
         console.error('Erreur lors de la suppression:', error);
       }
@@ -180,8 +183,7 @@ const CollectionsManagement = () => {
 
   const toggleActive = (collection) => {
     try {
-      collectionsService.update(collection.id, { active: !collection.active });
-      loadCollections();
+  (async () => { await collectionsService.update(collection.id, { active: !collection.active }); await loadCollections(); })();
     } catch (error) {
       console.error('Erreur lors de la mise à jour:', error);
     }

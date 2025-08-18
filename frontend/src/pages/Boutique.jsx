@@ -64,8 +64,10 @@ const Boutique = () => {
     } else {
       setFilteredProducts(products.filter(product => product.category === selectedCategory));
       // Charger les collections liées à cette catégorie
-      const collections = collectionsService.getCollectionsByCategory(selectedCategory);
-      setRelatedCollections(collections);
+      (async () => {
+        const cols = await collectionsService.getCollectionsByCategoryAsync(selectedCategory);
+        setRelatedCollections(cols || []);
+      })();
     }
   }, [products, selectedCategory]);
 
@@ -149,7 +151,7 @@ const Boutique = () => {
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {relatedCollections.slice(0, 3).map((collection) => {
-                  const collectionProducts = collectionsService.getCollectionProducts(collection.id);
+                  const collectionProducts = (collection.produits || []).map(cp => cp.product).filter(Boolean);
                   const previewImage = collection.imageApercu || collection.imageCouverture;
                   
                   return (

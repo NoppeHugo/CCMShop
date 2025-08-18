@@ -49,21 +49,12 @@ export const productsService = {
   getAll: async (params = {}) => {
     try {
       // Essayer de récupérer depuis le backend
-      const response = await api.get('/api/products', { params });
-      const backendProducts = response.data || [];
-      
-      // Récupérer les produits admin depuis localStorage
-      const adminProducts = JSON.parse(localStorage.getItem('adminProducts') || '[]');
-      
-      // Combiner les deux sources
-      const allProducts = [...backendProducts, ...adminProducts];
-      
-      return { data: allProducts };
+  const response = await api.get('/api/products', { params });
+  const backendProducts = response.data?.data || response.data || [];
+  return { data: backendProducts };
     } catch (error) {
-      console.warn('Backend non disponible, utilisation des produits admin uniquement');
-      // Si le backend n'est pas disponible, utiliser seulement les produits admin
-      const adminProducts = JSON.parse(localStorage.getItem('adminProducts') || '[]');
-      return { data: adminProducts };
+  console.error('Erreur API getAll products:', error);
+  return { data: [] };
     }
   },
 
@@ -98,17 +89,8 @@ export const productsService = {
   // Récupérer un produit par ID
   getById: async (id) => {
     try {
-      // Chercher d'abord dans les produits admin
-      const adminProducts = JSON.parse(localStorage.getItem('adminProducts') || '[]');
-      const adminProduct = adminProducts.find(p => p.id === parseInt(id));
-      
-      if (adminProduct) {
-        return { data: adminProduct };
-      }
-      
-      // Sinon chercher dans le backend
-      const response = await api.get(`/api/products/${id}`);
-      return { data: response.data };
+  const response = await api.get(`/api/products/${id}`);
+  return { data: response.data?.data || response.data };
     } catch (error) {
       console.error('Produit non trouvé:', error);
       throw error;

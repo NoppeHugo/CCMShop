@@ -52,35 +52,14 @@ export const productsService = {
   getAll: async (params = {}) => {
     try {
       // Essayer de récupérer depuis le backend
-      const response = await api.get('/api/products', { params });
-      
-      // Le backend retourne { success: true, data: [...] }
-      const backendProducts = response.data?.data || response.data || [];
-      
-      // Si on est dans l'interface admin (détecté par l'URL ou localStorage admin connecté)
-      const isAdminContext = window.location.pathname.includes('/admin') || 
-                            localStorage.getItem('isAdminConnected');
-      
-      if (isAdminContext) {
-        // Mode admin : combiner backend + localStorage
-        const adminProducts = JSON.parse(localStorage.getItem('adminProducts') || '[]');
-        const allProducts = [...backendProducts, ...adminProducts];
-        return { data: allProducts };
-      } else {
-        // Mode site normal : seulement le backend
-        return { data: backendProducts };
-      }
+  const response = await api.get('/api/products', { params });
+  // Le backend retourne { success: true, data: [...] }
+  const backendProducts = response.data?.data || response.data || [];
+  return { data: backendProducts };
     } catch (error) {
-      // Backend non disponible - utiliser localStorage seulement si on est en admin
-      const isAdminContext = window.location.pathname.includes('/admin') || 
-                            localStorage.getItem('isAdminConnected');
-      
-      if (isAdminContext) {
-        const adminProducts = JSON.parse(localStorage.getItem('adminProducts') || '[]');
-        return { data: adminProducts };
-      } else {
-        return { data: [] }; // Site normal sans backend = pas de produits
-      }
+  // Backend non disponible - retourner une liste vide
+  console.error('Erreur API getAll products:', error);
+  return { data: [] };
     }
   },
 
@@ -115,17 +94,9 @@ export const productsService = {
   // Récupérer un produit par ID
   getById: async (id) => {
     try {
-      // Chercher d'abord dans les produits admin
-      const adminProducts = JSON.parse(localStorage.getItem('adminProducts') || '[]');
-      const adminProduct = adminProducts.find(p => p.id === parseInt(id));
-      
-      if (adminProduct) {
-        return { data: adminProduct };
-      }
-      
-      // Sinon chercher dans le backend
-      const response = await api.get(`/api/products/${id}`);
-      return { data: response.data };
+  // Chercher dans le backend
+  const response = await api.get(`/api/products/${id}`);
+  return { data: response.data?.data || response.data };
     } catch (error) {
       console.error('Produit non trouvé:', error);
       throw error;
@@ -166,12 +137,10 @@ export const productsService = {
   // Supprimer un produit (localStorage uniquement)
   delete: async (id) => {
     try {
-      const adminProducts = JSON.parse(localStorage.getItem('adminProducts') || '[]');
-      const updatedProducts = adminProducts.filter(product => product.id !== parseInt(id));
-      localStorage.setItem('adminProducts', JSON.stringify(updatedProducts));
-      return { success: true };
+      const res = await api.delete(`/api/products/${id}`);
+      return { success: res.status === 200 };
     } catch (error) {
-      console.error('Erreur lors de la suppression du produit:', error);
+      console.error('Erreur lors de la suppression du produit via API:', error);
       throw error;
     }
   }

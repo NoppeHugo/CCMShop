@@ -1,4 +1,5 @@
 import React from 'react';
+import formatPrice from '../utils/formatPrice';
 import { useCart } from '../context/CartContext';
 import { Link } from 'react-router-dom';
 
@@ -143,7 +144,7 @@ const CartModal = ({ isOpen, onClose }) => {
 
                         {/* Prix */}
                         <p className="text-sm font-semibold text-neutral-900">
-                          {(item.price * item.quantity).toFixed(2)}€
+                          {formatPrice(item.price * item.quantity)}€
                         </p>
                       </div>
                     </div>
@@ -157,7 +158,7 @@ const CartModal = ({ isOpen, onClose }) => {
                 <div className="flex justify-between items-center">
                   <span className="text-base font-medium text-neutral-900">Total</span>
                   <span className="text-lg font-semibold text-neutral-900">
-                    {cartTotal.toFixed(2)}€
+                    {formatPrice(cartTotal)}€
                   </span>
                 </div>
 

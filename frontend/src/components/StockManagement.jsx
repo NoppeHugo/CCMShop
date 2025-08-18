@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { TrashIcon } from '@heroicons/react/24/outline';
 import { stockService } from '../services/stockService';
 import { productsService } from '../services/api';
+import formatPrice from '../utils/formatPrice';
 
 const StockManagement = ({ onClose }) => {
   const [products, setProducts] = useState([]);
@@ -126,6 +127,8 @@ const StockManagement = ({ onClose }) => {
     if (stock <= 3) return { status: 'low', label: 'Stock faible', color: 'bg-amber-100 text-amber-800' };
     return { status: 'good', label: 'En stock', color: 'bg-green-100 text-green-800' };
   };
+
+  // ...existing code...
 
   // Statistiques rapides
   const stockStats = {
@@ -286,7 +289,7 @@ const ProductStockCard = ({ product, stock, stockStatus, isUpdating, onUpdateSto
           <div className="flex-1 min-w-0">
             <h3 className="font-medium text-neutral-900 truncate">{product.name || 'Produit sans nom'}</h3>
             <p className="text-sm text-neutral-500 capitalize">{product.category?.replace('-', ' ') || 'Bijou'}</p>
-            <p className="text-sm font-medium text-neutral-700">{product.price?.toFixed(2) || '0.00'}€</p>
+            <p className="text-sm font-medium text-neutral-700">{formatPrice(product.price)}€</p>
           </div>
         </div>
 

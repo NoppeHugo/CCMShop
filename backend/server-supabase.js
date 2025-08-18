@@ -4,7 +4,7 @@ const url = require('url');
 const { testConnection } = require('./config/supabase');
 const productsService = require('./services/productsService');
 
-// Test de la connexion Supabase au démarrage
+// Test de la connexion PostgreSQL/Prisma au démarrage
 testConnection();
 
 const server = http.createServer(async (req, res) => {
@@ -42,10 +42,10 @@ const server = http.createServer(async (req, res) => {
   if (path === '/' && req.method === 'GET') {
     res.writeHead(200);
     res.end(JSON.stringify({
-      message: 'API E-commerce Bijoux avec Supabase ✨',
-      version: '2.0.0',
-      status: 'active',
-      database: 'Supabase',
+        message: 'API E-commerce Bijoux avec PostgreSQL/Prisma ✨',
+        version: '2.0.0',
+        status: 'active',
+        database: 'PostgreSQL (Prisma)',
       endpoints: [
         'GET / - Cette page',
         'GET /api/products - Liste des produits',
@@ -195,8 +195,8 @@ const server = http.createServer(async (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Serveur démarré avec Supabase sur le port ${PORT}`);
+  console.log(`🚀 Serveur démarré avec PostgreSQL/Prisma sur le port ${PORT}`);
   console.log(`📍 URL: http://0.0.0.0:${PORT}`);
-  console.log(`🗄️ Base de données: Supabase`);
+  console.log(`🗄️ Base de données: PostgreSQL (via Prisma)`);
   console.log(`📊 Test API: http://0.0.0.0:${PORT}/api/products`);
 });

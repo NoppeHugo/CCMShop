@@ -15,6 +15,7 @@ const AdminDashboard = () => {
   const [stockData, setStockData] = useState({});
   const [editingProduct, setEditingProduct] = useState(null);
   const navigate = useNavigate();
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   // Fonction pour charger les données de stock
   const loadStockData = async () => {
@@ -22,47 +23,95 @@ const AdminDashboard = () => {
     setStockData({ ...stockService.stockData });
   };
 
-  // Vérifier si l'utilisateur est connecté
+  // Vérifier si l'utilisateur est connecté via le backend (session HttpOnly cookie)
   useEffect(() => {
-    const isConnected = localStorage.getItem('isAdminConnected');
-    if (!isConnected) {
-      navigate('/admin/login');
-    }
-    
-    // Charger les produits depuis le localStorage (simulation)
-    const savedProducts = localStorage.getItem('adminProducts');
-    if (savedProducts) {
-      setProducts(JSON.parse(savedProducts));
-    }
+    (async () => {
+      try {
+        // Vérification session (doit retourner 200 + user info si connecté, 401 sinon)
+        const authRes = await fetch(`${API_BASE}/api/auth/me`, { credentials: 'include' });
+        if (authRes.status === 401) {
+          // Non connecté -> redirection vers la page de login
+          navigate('/admin/login');
+          return;
+        }
 
-    // Charger les données de stock
-    loadStockData();
+        if (!authRes.ok) {
+          console.warn('Échec vérification session admin, redirection vers login');
+          navigate('/admin/login');
+          return;
+        }
+
+        // Charger les produits depuis le backend en envoyant les credentials (cookie HttpOnly)
+        const res = await fetch(`${API_BASE}/api/products`, { credentials: 'include' });
+        if (res.ok) {
+          const body = await res.json();
+          setProducts(body.data || []);
+        } else {
+          // En production on n'utilise PAS de fallback localStorage: on affiche une erreur
+          console.error('Impossible de charger les produits depuis le backend:', res.status, res.statusText);
+          setProducts([]);
+        }
+      } catch (err) {
+        console.error('Erreur lors de la vérification de session ou du chargement des produits:', err);
+        // Ne pas tomber sur un fallback localStorage en prod — montrer page vide et laisser l'utilisateur se reconnecter
+        setProducts([]);
+      }
+
+      // Charger les données de stock (conserve la logique de synchronisation)
+      await loadStockData();
+    })();
   }, [navigate]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('isAdminConnected');
+  const handleLogout = async () => {
+    try {
+      // Appel au backend pour détruire la session (cookie HttpOnly côté serveur)
+      await fetch(`${API_BASE}/api/auth/logout`, { method: 'POST', credentials: 'include' });
+    } catch (err) {
+      console.error('Erreur lors de la déconnexion:', err);
+    }
     navigate('/admin/login');
   };
 
   const handleResetAll = () => {
     if (window.confirm('⚠️ ATTENTION : Supprimer TOUS les produits et collections ? Cette action est irréversible !')) {
-      localStorage.removeItem('adminProducts');
-      localStorage.removeItem('jewelry-stock');
-      localStorage.removeItem('jewelry_collections');
-      setProducts([]);
-      setStockData({});
-      alert('✅ Tous les produits ont été supprimés !');
+      (async () => {
+        try {
+          // Appel sécurisé au backend qui doit vérifier les droits et effectuer la suppression
+          const res = await fetch(`${API_BASE}/api/admin/reset`, { method: 'DELETE', credentials: 'include' });
+          if (res.ok) {
+            setProducts([]);
+            setStockData({});
+            alert('✅ Tous les produits ont été supprimés !');
+          } else {
+            const body = await res.json().catch(() => ({}));
+            alert('Erreur reset: ' + (body.error || res.statusText));
+          }
+        } catch (err) {
+          console.error('Erreur reset produits:', err);
+          alert('Erreur reset: ' + err.message);
+        }
+      })();
     }
   };
 
   const deleteProduct = (id) => {
     if (window.confirm('Êtes-vous sûre de vouloir supprimer ce bijou ?')) {
-      const updatedProducts = products.filter(product => product.id !== id);
-      setProducts(updatedProducts);
-      localStorage.setItem('adminProducts', JSON.stringify(updatedProducts));
-      
-      // Recharger les données de stock
-      loadStockData();
+      (async () => {
+        try {
+          const res = await fetch(`${API_BASE}/api/products/${id}`, { method: 'DELETE', credentials: 'include' });
+          if (res.ok) {
+            const updatedProducts = products.filter(product => product.id !== id);
+            setProducts(updatedProducts);
+            loadStockData();
+          } else {
+            const body = await res.json().catch(() => ({}));
+            alert('Erreur suppression: ' + (body.error || res.statusText));
+          }
+        } catch (err) {
+          console.error('Erreur suppression produit:', err);
+          alert('Erreur suppression produit: ' + err.message);
+        }
+      })();
     }
   };
 
@@ -74,22 +123,36 @@ const AdminDashboard = () => {
 
   // Fonction pour mettre à jour un produit
   const updateProduct = (updatedProduct) => {
-    const updatedProducts = products.map(product => 
-      product.id === updatedProduct.id ? updatedProduct : product
-    );
-    setProducts(updatedProducts);
-    localStorage.setItem('adminProducts', JSON.stringify(updatedProducts));
-    
-    // Aussi mettre à jour le stock dans le stockService si le stock a changé
-    if (updatedProduct.stock !== undefined) {
-      stockService.updateProductStock(updatedProduct.id, updatedProduct.stock);
-    }
-    
-    setEditingProduct(null);
-    setShowAddForm(false);
-    
-    // Recharger les données de stock
-    loadStockData();
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/products/${updatedProduct.id}`, {
+          method: 'PUT',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedProduct)
+        });
+        if (res.ok) {
+          const body = await res.json();
+          const data = body.data || updatedProduct;
+          const updatedProducts = products.map(product => product.id === data.id ? data : product);
+          setProducts(updatedProducts);
+
+          if (data.stock !== undefined) {
+            stockService.updateProductStock(data.id, data.stock);
+          }
+
+          setEditingProduct(null);
+          setShowAddForm(false);
+          loadStockData();
+        } else {
+          const body = await res.json().catch(() => ({}));
+          alert('Erreur mise à jour: ' + (body.error || res.statusText));
+        }
+      } catch (err) {
+        console.error('Erreur mise à jour produit:', err);
+        alert('Erreur mise à jour produit: ' + err.message);
+      }
+    })();
   };
 
   // Fonction pour obtenir le statut du stock
@@ -264,17 +327,16 @@ const AdminDashboard = () => {
             setEditingProduct(null);
           }}
           onProductAdded={(newProduct) => {
+            // Ajouter le produit renvoyé par le backend
             const updatedProducts = [...products, newProduct];
             setProducts(updatedProducts);
-            localStorage.setItem('adminProducts', JSON.stringify(updatedProducts));
-            
-            // Aussi initialiser le stock dans le stockService
+
+            // Initialiser le stock dans le stockService si fourni
             if (newProduct.stock !== undefined) {
               stockService.setInitialStock(newProduct.id, newProduct.stock);
             }
-            
+
             setShowAddForm(false);
-            
             // Recharger les données de stock
             loadStockData();
           }}

@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { prisma } = require('../config/supabase');
 
 // Données temporaires pour le développement (sera remplacé par Prisma)
 const products = [
@@ -122,6 +123,30 @@ router.get('/meta/categories', (req, res) => {
       success: false,
       error: 'Erreur lors de la récupération des catégories'
     });
+  }
+});
+
+// POST /api/products - Créer un nouveau produit (persist via Prisma)
+router.post('/', async (req, res) => {
+  try {
+    const { name, description, price = 0, stock = 0, images = [], category = 'bijou', featured = false } = req.body;
+
+    const created = await prisma.product.create({
+      data: {
+        name: name || 'Produit sans nom',
+        description: description || '',
+        price: Number(price) || 0,
+        stock: Number(stock) || 0,
+        images: images,
+        category: category || 'bijou',
+        featured: !!featured
+      }
+    });
+
+    res.status(201).json({ success: true, data: created });
+  } catch (error) {
+    console.error('Erreur lors de la création du produit :', error);
+    res.status(500).json({ success: false, error: 'Erreur lors de la création du produit' });
   }
 });
 

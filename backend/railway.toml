@@ -4,7 +4,7 @@ build:
   builder: nixpacks
 
 deploy:
-  startCommand: node server-supabase.js
+  startCommand: node server-production.js
   healthcheckPath: /
   healthcheckTimeout: 300
   restartPolicyType: on-failure

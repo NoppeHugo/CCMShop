@@ -13,32 +13,25 @@ const CollectionDetail = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    loadCollectionData();
+    (async () => { await loadCollectionData(); })();
   }, [id]);
 
-  const loadCollectionData = () => {
+  const loadCollectionData = async () => {
     try {
-      // Charger la collection
-      const collectionData = collectionsService.getById(parseInt(id));
-      
+      const collectionData = await collectionsService.getById(parseInt(id));
       if (!collectionData) {
         setError('Collection non trouvée');
         setLoading(false);
         return;
       }
-
       if (!collectionData.active) {
         setError('Cette collection n\'est pas disponible');
         setLoading(false);
         return;
       }
-
       setCollection(collectionData);
-
-      // Charger les produits de la collection
-      const collectionProducts = collectionsService.getCollectionProducts(parseInt(id));
+      const collectionProducts = (collectionData.produits || []).map(cp => cp.product).filter(Boolean);
       setProducts(collectionProducts);
-      
       setLoading(false);
     } catch (error) {
       console.error('Erreur lors du chargement de la collection:', error);

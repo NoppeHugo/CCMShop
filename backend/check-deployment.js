@@ -16,8 +16,7 @@ console.log(`${checkColors.YELLOW}📋 Variables d'Environnement${checkColors.RE
 const requiredEnvVars = [
   { name: 'NODE_ENV', value: process.env.NODE_ENV, required: false },
   { name: 'PORT', value: process.env.PORT, required: false },
-  { name: 'SUPABASE_URL', value: process.env.SUPABASE_URL, required: true },
-  { name: 'SUPABASE_SERVICE_ROLE_KEY', value: process.env.SUPABASE_SERVICE_ROLE_KEY, required: true }
+  { name: 'DATABASE_URL', value: process.env.DATABASE_URL, required: true }
 ];
 
 requiredEnvVars.forEach(envVar => {
@@ -42,10 +41,10 @@ const fs = require('fs');
 const path = require('path');
 
 const requiredFiles = [
-  'server-supabase.js',
-  'config/supabase.js',
+  'server-production.js',
+  'config/supabase.js', // now holds Prisma client
   'services/productsService.js',
-  'sql/schema.sql',
+  'prisma/schema.prisma',
   '.env',
   'railway.toml'
 ];
@@ -69,10 +68,10 @@ try {
   const railwayConfig = fs.readFileSync(path.join(__dirname, 'railway.toml'), 'utf8');
   
   const checks = [
-    { name: 'Start Command', pattern: /startCommand:\s*node server-supabase\.js/, required: true },
-    { name: 'Health Check', pattern: /healthcheckPath:\s*\//, required: false },
-    { name: 'Restart Policy', pattern: /restartPolicyType:\s*on-failure/, required: false }
-  ];
+      { name: 'Start Command', pattern: /startCommand:\s*node server-production\.js/, required: true },
+      { name: 'Health Check', pattern: /healthcheckPath:\s*\//, required: false },
+      { name: 'Restart Policy', pattern: /restartPolicyType:\s*on-failure/, required: false }
+    ];
   
   checks.forEach(check => {
     const found = check.pattern.test(railwayConfig);
@@ -93,33 +92,30 @@ console.log('');
 // Instructions de déploiement
 console.log(`${checkColors.BLUE}🚀 Prochaines Étapes${checkColors.RESET}`);
 
-const missingSupabaseUrl = !process.env.SUPABASE_URL;
-const missingSupabaseKey = !process.env.SUPABASE_SERVICE_ROLE_KEY;
+const missingDatabaseUrl = !process.env.DATABASE_URL;
 
-if (missingSupabaseUrl || missingSupabaseKey) {
-  console.log(`${checkColors.RED}❌ Configuration Supabase incomplète${checkColors.RESET}`);
+if (missingDatabaseUrl) {
+  console.log(`${checkColors.RED}❌ DATABASE_URL manquante${checkColors.RESET}`);
   console.log('');
-  console.log('1. Créer un projet sur https://supabase.com');
-  console.log('2. Exécuter le fichier sql/schema.sql dans Supabase');
-  console.log('3. Configurer les variables d\'environnement :');
-  if (missingSupabaseUrl) console.log('   - SUPABASE_URL=https://[projet].supabase.co');
-  if (missingSupabaseKey) console.log('   - SUPABASE_SERVICE_ROLE_KEY=eyJ[service-role-key]');
+  console.log('1. Installer PostgreSQL ou utiliser un service géré (Railway PostgreSQL ou autre)');
+  console.log('2. Mettre à jour la variable d\'environnement DATABASE_URL dans .env');
+  console.log('3. Exécuter les migrations Prisma: npx prisma migrate dev --name init');
   console.log('4. Redémarrer le serveur');
 } else {
-  console.log(`${checkColors.GREEN}✅ Configuration complète !${checkColors.RESET}`);
+  console.log(`${checkColors.GREEN}✅ Configuration minimale présente (DATABASE_URL)${checkColors.RESET}`);
   console.log('');
-  console.log('Pour déployer sur Railway :');
-  console.log('1. Configurer les variables dans Railway Dashboard');
-  console.log('2. git add . && git commit -m "feat: Migration Supabase"');
+  console.log('Pour déployer sur Railway/Serveur :');
+  console.log('1. Configurer DATABASE_URL dans le dashboard');
+  console.log('2. git add . && git commit -m "chore: switch to Prisma/Postgres"');
   console.log('3. git push origin main');
   console.log('');
   console.log('Pour tester localement :');
-  console.log('node test-supabase.js');
-  console.log('node server-supabase.js');
+  console.log('node test-db.js  # tester la connexion (Prisma)');
+  console.log('node server-production.js  # démarrer le serveur de production');
 }
 
 console.log('');
 console.log(`${checkColors.BLUE}📚 Documentation${checkColors.RESET}`);
-console.log('- Guide complet: docs/deployment-supabase.md');
-console.log('- Setup Supabase: docs/supabase-setup.md');
+console.log('- Guide complet: docs/deployment-postgres.md');
+console.log('- Setup Prisma/Postgres: docs/prisma-setup.md');
 console.log('- Comparaison serveurs: backend/README-servers.md');
