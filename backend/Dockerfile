@@ -1,23 +1,16 @@
 FROM node:18-slim
-
 WORKDIR /usr/src/app
 
-# Copy package files first (caching)
+RUN apt-get update && apt-get install -y curl netcat-openbsd && rm -rf /var/lib/apt/lists/*
+
 COPY package.json package-lock.json ./
+RUN npm ci     # garde toutes les deps pour prisma generate
 
-# Install deps
-RUN npm ci --production
-
-# Copy app
 COPY . .
 
-# Generate Prisma client
 RUN npx prisma generate || true
-
-# Make entrypoint executable
 RUN chmod +x ./docker-entrypoint.sh
+RUN npm prune --omit=dev || true
 
 EXPOSE 5000
-
-# Entrypoint will run migrations then start the server
 ENTRYPOINT ["./docker-entrypoint.sh"]

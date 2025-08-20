@@ -46,13 +46,14 @@ services:
       - internal
 
   frontend:
-    build:
-      context: ./frontend
-    restart: unless-stopped
-    environment:
+  build:
+    context: ./frontend
+    args:
       VITE_API_URL: ${VITE_API_URL}
-    networks:
-      - internal
+  restart: unless-stopped
+  networks:
+    - internal
+
 
   caddy:
     image: caddy:2-alpine
