@@ -1,19 +1,25 @@
+cp docker-compose.yml docker-compose.yml.bak 2>/dev/null || true
+
+cat > docker-compose.yml << 'EOF'
 version: "3.8"
+
 services:
   db:
     image: postgres:15-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ccm_user
-      POSTGRES_PASSWORD: change_me
-      POSTGRES_DB: ccm_db
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ccm_user"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 5s
       timeout: 5s
       retries: 10
+    networks:
+      - internal
 
   backend:
     build:
@@ -23,32 +29,53 @@ services:
       db:
         condition: service_healthy
     environment:
-      NODE_ENV: production
-      PORT: 5000
-      DATABASE_URL: "postgresql://ccm_user:change_me@db:5432/ccm_db?schema=public"
+      NODE_ENV: ${NODE_ENV}
+      PORT: ${BACK_PORT}
+      DATABASE_URL: ${DATABASE_URL}
       SUPABASE_URL: ""
       SUPABASE_SERVICE_ROLE_KEY: ""
-      PRISMA_MIGRATE: "true"
-      # FRONTEND_URL utilisé par le backend si besoin (ex: pour CORS / cookies)
-      FRONTEND_URL: "http://collierscolliersmaison.be"
-    ports:
-      - "5000:5000"
+      PRISMA_MIGRATE: ${PRISMA_MIGRATE}
+      FRONTEND_URL: ${FRONTEND_URL}
     volumes:
       - ./backend:/usr/src/app
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:5000/ || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:${BACK_PORT}/ || exit 1"]
       interval: 10s
       retries: 5
+    networks:
+      - internal
 
   frontend:
     build:
       context: ./frontend
     restart: unless-stopped
+    environment:
+      VITE_API_URL: ${VITE_API_URL}
+    networks:
+      - internal
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
     ports:
       - "80:80"
-    environment:
-      # URL que le code frontend utilise pour appeler l'API (public)
-      VITE_API_URL: "http://57.129.139.107:5000"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - internal
 
 volumes:
   pgdata:
+  caddy_data:
+  caddy_config:
+
+networks:
+  internal:
+    driver: bridge
+EOF

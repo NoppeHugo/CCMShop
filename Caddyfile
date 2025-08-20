@@ -1,0 +1,23 @@
+cat > Caddyfile << 'EOF'
+{
+  email admin@collierscolliersmaison.be
+}
+
+collierscolliersmaison.be {
+  encode zstd gzip
+
+  @api path /api*
+  handle @api {
+    reverse_proxy backend:5000
+  }
+
+  # tout le reste -> frontend (servi par nginx dans le conteneur 'frontend')
+  handle {
+    reverse_proxy frontend:80
+  }
+
+  handle_host www.collierscolliersmaison.be {
+    redir https://collierscolliersmaison.be{uri}
+  }
+}
+EOF
