@@ -15,11 +15,12 @@ const AdminLogin = () => {
 
     try {
       // Appel au backend pour authentifier; serveur doit renvoyer un cookie HttpOnly si OK
+      const ADMIN_EMAIL = 'admin@collierscolliersmaison.be';
       const res = await fetch(`${API_BASE}/api/auth/login`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password })
+        body: JSON.stringify({ email: ADMIN_EMAIL, password })
       });
 
       if (res.ok) {
