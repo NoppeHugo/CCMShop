@@ -4,12 +4,12 @@
   "description": "Backend API pour site e-commerce de bijoux",
   "main": "server.js",
   "scripts": {
-    "start": "node server-http.js",
+  "start": "node server-http.js",
   "start:prod": "node server-production.js",
   "start:prisma": "node server-prisma.js",
     "dev": "nodemon server.js",
     "build": "echo 'No build step required'",
-    "test": "echo \"Error: no test specified\" && exit 1",
+  "test": "jest --runInBand",
   "test:db": "node test-db.js",
     "check:deployment": "node check-deployment.js",
     "deploy": "node deploy.js",
@@ -39,6 +39,8 @@
     "prisma": "^6.12.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.10"
+  "nodemon": "^3.1.10",
+  "jest": "^29.6.0",
+  "supertest": "^6.3.3"
   }
 }
